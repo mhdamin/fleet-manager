@@ -1,0 +1,5 @@
+{
+  "name": "FleetGuard Manager",
+  "description": "A comprehensive rental fleet management dashboard featuring vehicle tracking, digital inspection checklists, audit trails, and reporting.",
+  "requestFramePermissions": []
+}
