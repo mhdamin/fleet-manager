@@ -22,3 +22,10 @@ This repo is deployed as a standalone frontend service using Docker.
   `VITE_API_BASE_URL=https://fms.yourdomain.com`
 
 Note: Vite injects env values at build time, so API URL must be provided during build.
+Always include the full scheme (`https://...`), not just the hostname.
+
+If you want frontend requests to be relative (for example exactly `/api/auth/login`), set:
+
+`VITE_API_BASE_URL=/`
+
+Then configure Dokploy reverse proxy to route `/api/*` to your backend service.

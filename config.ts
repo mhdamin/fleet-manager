@@ -1,12 +1,23 @@
 // Application configuration
-// This file centralizes all configuration values from environment variables
+// This file centralizes all configuration values from environment variables.
+
+const explicitApiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
+const rawApiUrl =
+  explicitApiUrl !== undefined && explicitApiUrl !== null
+    ? explicitApiUrl.trim()
+    : import.meta.env.DEV
+      ? 'http://localhost:8080'
+      : '';
+
+const normalizedApiUrl =
+  rawApiUrl === '' || rawApiUrl === '/'
+    ? ''
+    : /^https?:\/\//i.test(rawApiUrl) || rawApiUrl.startsWith('/')
+      ? rawApiUrl
+      : `https://${rawApiUrl}`;
 
 export const config = {
-  // Keep backward compatibility with VITE_API_URL while preferring VITE_API_BASE_URL.
-  apiUrl:
-    import.meta.env.VITE_API_BASE_URL ||
-    import.meta.env.VITE_API_URL ||
-    'http://localhost:8080',
+  apiUrl: normalizedApiUrl.replace(/\/+$/, ''),
 };
 
 // Authentication utility functions
