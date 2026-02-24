@@ -1,23 +1,41 @@
 export type ViewState = 'dashboard' | 'vehicles' | 'checklist' | 'audit' | 'reports' | 'users';
 
+// Vehicle type matching backend VehicleResponseDTO
 export interface Vehicle {
   id: string;
-  make: string;
+  plateNumber: string;
   model: string;
-  year: string;
-  plate: string;
-  status: 'Available' | 'Rented' | 'Maintenance';
-  lastService: string;
+  manufacturer: string;
+  year: number;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Vehicle statistics matching backend VehicleStatsDTO
+export interface VehicleStats {
+  totalVehicles: number;
+  availableVehicles: number;
+  rentedVehicles: number;
+  maintenanceVehicles: number;
+}
+
+// Activity log matching backend VehicleChangeLogResponseDTO
+export interface Activity {
+  id: string;
+  checklistId: string;
+  changeType: string;
+  oldVehiclePlate: string | null;
+  newVehiclePlate: string | null;
+  reason: string;
+  timestamp: string;
+  staffName: string;
 }
 
 export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'Administrator' | 'Manager' | 'Operator';
-  department: string;
-  lastLogin: string;
-  status: 'Active' | 'Inactive';
+  id: number;
+  username: string;
+  roles: string[];
 }
 
 export interface LogEntry {
@@ -37,6 +55,7 @@ export interface InspectionPoint {
   x: number;
   y: number; // Percentage positions
   label: string;
+  position?: string; // Position description (e.g., "Hood", "Left Front Door")
   status?: 'Normal' | 'Abnormal' | 'N/A' | 'Not Inspected';
   notes?: string;
 }
@@ -47,7 +66,7 @@ export interface ChecklistData {
   makeModel: string;
   odometer: string;
   fuelLevel: string;
-  type: string; // 'pickup', 'return', etc.
+  type: string;
   exteriorPoints: InspectionPoint[];
   interior: {
     dashboard: string;

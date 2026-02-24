@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { 
-  LayoutDashboard, Car, ClipboardList, FileText, 
-  Settings, Users, Bell, Search, ChevronDown, User 
+import React, { useState, useEffect } from 'react';
+import {
+  LayoutDashboard, Car, ClipboardList, FileText,
+  Settings, Users, Bell, Search, LogOut, User
 } from 'lucide-react';
 
 import Dashboard from './components/Dashboard';
@@ -9,10 +9,56 @@ import VehicleManagement from './components/VehicleManagement';
 import ChecklistManager from './components/Checklist/ChecklistManager';
 import AuditTrail from './components/AuditTrail';
 import UserManagement from './components/UserManagement';
+import Login from './components/Login';
 import { ViewState } from './types';
+import { auth } from './config';
+import Reports from './components/Reports';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
+  const [isAuthenticated, setIsAuthenticated] = useState(auth.isAuthenticated());
+  const [username, setUsername] = useState(auth.getUsername() || 'User');
+  const [isAdmin, setIsAdmin] = useState(auth.hasRole('ROLE_ADMIN'));
+
+  // Check authentication on mount and listen for expiration
+  useEffect(() => {
+    setIsAuthenticated(auth.isAuthenticated());
+    setUsername(auth.getUsername() || 'User');
+
+    // Listen for authentication expiration events from API interceptor
+    const handleAuthExpired = () => {
+      setIsAuthenticated(false);
+      setUsername('User');
+      setIsAdmin(false);
+      setCurrentView('dashboard');
+    };
+
+    window.addEventListener('auth:expired', handleAuthExpired);
+
+    return () => {
+      window.removeEventListener('auth:expired', handleAuthExpired);
+    };
+  }, []);
+
+  // Handle login success
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    setUsername(auth.getUsername() || 'User');
+    setIsAdmin(auth.hasRole('ROLE_ADMIN'));
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    await auth.logout(); // Call backend to revoke refresh token
+    setIsAuthenticated(false);
+    setUsername('User');
+    setCurrentView('dashboard');
+  };
+
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
 
   const renderContent = () => {
     switch (currentView) {
@@ -20,6 +66,7 @@ const App: React.FC = () => {
       case 'vehicles': return <VehicleManagement />;
       case 'checklist': return <ChecklistManager />;
       case 'audit': return <AuditTrail />;
+      case 'reports': return <Reports />;
       case 'users': return <UserManagement />;
       default: return <Dashboard />;
     }
@@ -66,27 +113,38 @@ const App: React.FC = () => {
             active={currentView === 'audit'} 
             onClick={() => setCurrentView('audit')} 
           />
-          <NavItem 
-            icon={<Settings size={20} />} 
-            label="Reports & Print" 
-            active={currentView === 'reports'} 
-            onClick={() => setCurrentView('reports')} 
+          <NavItem
+            icon={<Settings size={20} />}
+            label="Reports & Print"
+            active={currentView === 'reports'}
+            onClick={() => setCurrentView('reports')}
           />
-          <NavItem 
-            icon={<Users size={20} />} 
-            label="User Management" 
-            active={currentView === 'users'} 
-            onClick={() => setCurrentView('users')} 
-          />
+          {isAdmin && (
+            <NavItem
+              icon={<Users size={20} />}
+              label="User Management"
+              active={currentView === 'users'}
+              onClick={() => setCurrentView('users')}
+            />
+          )}
         </nav>
 
         <div className="p-4 border-t border-gray-100">
           <div className="flex items-center gap-3 px-4 py-2">
-             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">JS</div>
-             <div className="flex-1 min-w-0">
-               <p className="text-sm font-medium text-gray-900 truncate">John Smith</p>
-               <p className="text-xs text-gray-500 truncate">Fleet Manager</p>
+             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
+               {username.substring(0, 2).toUpperCase()}
              </div>
+             <div className="flex-1 min-w-0">
+               <p className="text-sm font-medium text-gray-900 truncate">{username}</p>
+               <p className="text-xs text-gray-500 truncate">{auth.getRoles().join(', ')}</p>
+             </div>
+             <button
+               onClick={handleLogout}
+               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+               title="Logout"
+             >
+               <LogOut size={18} />
+             </button>
           </div>
         </div>
       </aside>
@@ -115,9 +173,11 @@ const App: React.FC = () => {
                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
               </button>
               <div className="h-8 w-[1px] bg-gray-200 mx-1"></div>
-              <div className="flex items-center gap-2 text-gray-700 font-medium text-sm cursor-pointer hover:text-blue-600">
-                 <span className="hidden md:inline">Admin User</span>
-                 <User size={20} className="bg-gray-100 p-1 rounded-full w-8 h-8" />
+              <div className="flex items-center gap-2 text-gray-700 font-medium text-sm">
+                 <span className="hidden md:inline">{username}</span>
+                 <div className="bg-gray-100 p-1 rounded-full w-8 h-8 flex items-center justify-center">
+                   <User size={20} />
+                 </div>
               </div>
            </div>
         </header>
