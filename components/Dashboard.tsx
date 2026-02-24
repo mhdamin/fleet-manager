@@ -1,13 +1,55 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Car, CheckCircle, Key, PenTool, AlertTriangle, ArrowRight } from 'lucide-react';
+import { apiGet } from '../services/api';
+
+interface DashboardSummary {
+  totalVehicles: number;
+  availableVehicles: number;
+  rentedOutVehicles: number;
+  maintenanceVehicles: number;
+}
+
+const FALLBACK_SUMMARY: DashboardSummary = {
+  totalVehicles: 247,
+  availableVehicles: 189,
+  rentedOutVehicles: 42,
+  maintenanceVehicles: 16,
+};
 
 const Dashboard: React.FC = () => {
+  const [summary, setSummary] = useState<DashboardSummary>(FALLBACK_SUMMARY);
+  const [summaryWarning, setSummaryWarning] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadSummary = async () => {
+      try {
+        const data = await apiGet<DashboardSummary>('/api/dashboard/summary');
+        if (!cancelled) {
+          setSummary(data);
+          setSummaryWarning(null);
+        }
+      } catch {
+        if (!cancelled) {
+          setSummaryWarning('Backend summary unavailable. Showing fallback values.');
+        }
+      }
+    };
+
+    loadSummary();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-gray-800">Dashboard Overview</h2>
         <p className="text-gray-500">Welcome back! Here's what's happening with your fleet today.</p>
+        {summaryWarning && <p className="text-xs text-amber-600 mt-1">{summaryWarning}</p>}
       </div>
 
       {/* Stats Cards */}
@@ -15,7 +57,7 @@ const Dashboard: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-500">Total Vehicles</p>
-            <h3 className="text-3xl font-bold text-gray-800">247</h3>
+            <h3 className="text-3xl font-bold text-gray-800">{summary.totalVehicles}</h3>
           </div>
           <div className="p-3 bg-blue-50 rounded-lg text-blue-600">
             <Car size={24} />
@@ -24,7 +66,7 @@ const Dashboard: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-500">Available</p>
-            <h3 className="text-3xl font-bold text-gray-800">189</h3>
+            <h3 className="text-3xl font-bold text-gray-800">{summary.availableVehicles}</h3>
           </div>
           <div className="p-3 bg-green-50 rounded-lg text-green-600">
             <CheckCircle size={24} />
@@ -33,7 +75,7 @@ const Dashboard: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-500">Rented Out</p>
-            <h3 className="text-3xl font-bold text-gray-800">42</h3>
+            <h3 className="text-3xl font-bold text-gray-800">{summary.rentedOutVehicles}</h3>
           </div>
           <div className="p-3 bg-amber-50 rounded-lg text-amber-600">
             <Key size={24} />
@@ -42,7 +84,7 @@ const Dashboard: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-500">Maintenance</p>
-            <h3 className="text-3xl font-bold text-gray-800">16</h3>
+            <h3 className="text-3xl font-bold text-gray-800">{summary.maintenanceVehicles}</h3>
           </div>
           <div className="p-3 bg-red-50 rounded-lg text-red-600">
             <PenTool size={24} />

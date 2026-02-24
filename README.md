@@ -18,3 +18,26 @@ View your app in AI Studio: https://ai.studio/apps/drive/1LbEiaeimOVs0BXaElCxvOt
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Backend API configuration
+
+Set your backend base URL in environment variables:
+
+`VITE_API_BASE_URL=https://fms.mywebsitename.space`
+
+For Docker/Vite deployments, this value must be available at build time (Docker build arg), not only container runtime.
+
+The dashboard requests:
+
+`GET /api/dashboard/summary`
+
+Expected JSON response:
+
+```json
+{
+  "totalVehicles": 247,
+  "availableVehicles": 189,
+  "rentedOutVehicles": 42,
+  "maintenanceVehicles": 16
+}
+```
