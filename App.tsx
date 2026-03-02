@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   LayoutDashboard, Car, ClipboardList, FileText, 
-  Settings, Users, Bell, Search, ChevronDown, User 
+  Settings, Users, Bell, Search, User, LogOut 
 } from 'lucide-react';
 
 import Dashboard from './components/Dashboard';
@@ -9,10 +9,46 @@ import VehicleManagement from './components/VehicleManagement';
 import ChecklistManager from './components/Checklist/ChecklistManager';
 import AuditTrail from './components/AuditTrail';
 import UserManagement from './components/UserManagement';
+import Reports from './components/Reports';
 import { ViewState } from './types';
+import {
+  AUTH_UNAUTHORIZED_EVENT,
+  clearAuthSession,
+  getStoredAuthUser,
+  isAuthenticated,
+  login,
+  saveAuthSession,
+} from './services/api';
+
+interface AuthUser {
+  username: string;
+  roles: string[];
+}
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
+  const [authUser, setAuthUser] = useState<AuthUser | null>(
+    isAuthenticated() ? getStoredAuthUser() : null
+  );
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const authenticated = Boolean(authUser && isAuthenticated());
+
+  useEffect(() => {
+    const onUnauthorized = () => {
+      clearAuthSession();
+      setAuthUser(null);
+      setCurrentView('dashboard');
+      setLoginError('Your session has expired. Please log in again.');
+    };
+
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => {
+      window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, onUnauthorized);
+    };
+  }, []);
 
   const renderContent = () => {
     switch (currentView) {
@@ -20,10 +56,106 @@ const App: React.FC = () => {
       case 'vehicles': return <VehicleManagement />;
       case 'checklist': return <ChecklistManager />;
       case 'audit': return <AuditTrail />;
+      case 'reports': return <Reports />;
       case 'users': return <UserManagement />;
       default: return <Dashboard />;
     }
   };
+
+  const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!username.trim() || !password) {
+      setLoginError('Username and password are required.');
+      return;
+    }
+
+    setIsLoggingIn(true);
+    setLoginError(null);
+
+    try {
+      const auth = await login(username.trim(), password);
+      saveAuthSession(auth);
+      setAuthUser({
+        username: auth.username,
+        roles: auth.roles || [],
+      });
+      setPassword('');
+      setCurrentView('dashboard');
+    } catch {
+      clearAuthSession();
+      setAuthUser(null);
+      setLoginError('Invalid username or password.');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = () => {
+    clearAuthSession();
+    setAuthUser(null);
+    setUsername('');
+    setPassword('');
+    setCurrentView('dashboard');
+    setLoginError(null);
+  };
+
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <form
+          onSubmit={handleLoginSubmit}
+          className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-200 p-8"
+        >
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">FleetGuard Login</h1>
+            <p className="text-sm text-gray-600 mt-1">Sign in to continue.</p>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter username"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter password"
+              />
+            </div>
+          </div>
+
+          {loginError && <p className="text-sm text-red-600 mt-4">{loginError}</p>}
+
+          <button
+            type="submit"
+            disabled={isLoggingIn}
+            className="w-full mt-6 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg transition-colors"
+          >
+            {isLoggingIn ? 'Signing in...' : 'Sign in'}
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans overflow-hidden">
@@ -84,9 +216,18 @@ const App: React.FC = () => {
           <div className="flex items-center gap-3 px-4 py-2">
              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">JS</div>
              <div className="flex-1 min-w-0">
-               <p className="text-sm font-medium text-gray-900 truncate">John Smith</p>
-               <p className="text-xs text-gray-500 truncate">Fleet Manager</p>
+               <p className="text-sm font-medium text-gray-900 truncate">{authUser?.username}</p>
+               <p className="text-xs text-gray-500 truncate">{authUser?.roles?.[0] || 'User'}</p>
              </div>
+             <button
+               type="button"
+               onClick={handleLogout}
+               className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+               aria-label="Logout"
+               title="Logout"
+             >
+               <LogOut size={16} />
+             </button>
           </div>
         </div>
       </aside>
