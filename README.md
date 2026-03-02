@@ -1,36 +1,43 @@
-# Fleet Manager Frontend
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-React + Vite frontend for the Inspection System.
+# Run and deploy your AI Studio app
 
-## Local development
+This contains everything you need to run your app locally.
+
+View your app in AI Studio: https://ai.studio/apps/drive/1LbEiaeimOVs0BXaElCxvOtQFFlwIxnXt
+
+## Run Locally
+
+**Prerequisites:**  Node.js
+
 
 1. Install dependencies:
    `npm install`
-2. Set API base URL in `.env` (or `.env.local`):
-   `VITE_API_BASE_URL=http://localhost:8080`
-3. Start dev server:
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
    `npm run dev`
 
-## Dokploy deployment
+## Backend API configuration
 
-This repo is deployed as a standalone frontend service using Docker.
+Set your backend base URL in environment variables:
 
-- Dockerfile path: `./Dockerfile`
-- Container port: `80`
-- Domain: your frontend domain (for example `fleet.yourdomain.com`)
-- Build arg:
-  `VITE_API_BASE_URL=https://fms.yourdomain.com`
+`VITE_API_BASE_URL=https://fms.mywebsitename.space`
 
-Note: Vite injects env values at build time, so API URL must be provided during build.
-Always include the full scheme (`https://...`), not just the hostname.
+For Docker/Vite deployments, this value must be available at build time (Docker build arg), not only container runtime.
 
-For same-domain routing (recommended for this deployment), set:
+The dashboard requests:
 
-`VITE_API_BASE_URL=/`
+`GET /api/dashboard/summary`
 
-Then configure Dokploy reverse proxy to route `/api/*` to your backend service with:
+Expected JSON response:
 
-- Route A: `fleet.amindoestech.space` + path `/api` -> backend service
-- Route B: `fleet.amindoestech.space` + path `/` -> frontend service
-- Backend route precedence above `/`
-- `Strip Path` disabled on `/api` route
+```json
+{
+  "totalVehicles": 247,
+  "availableVehicles": 189,
+  "rentedOutVehicles": 42,
+  "maintenanceVehicles": 16
+}
+```
