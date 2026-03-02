@@ -4,6 +4,7 @@ import {
   Car, Shield, AlertOctagon, PenTool, X, Camera 
 } from 'lucide-react';
 import { ChecklistData, InspectionPoint } from '../../types';
+import { apiPost, getChecklists, type ChecklistResponse } from '../../services/api';
 
 // --- INITIAL STATE ---
 const INITIAL_POINTS: InspectionPoint[] = [
@@ -34,6 +35,9 @@ const ChecklistManager: React.FC = () => {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<ChecklistData>(INITIAL_DATA);
   const [modalPoint, setModalPoint] = useState<InspectionPoint | null>(null);
+  const [recentChecklists, setRecentChecklists] = useState<ChecklistResponse[]>([]);
+  const [warning, setWarning] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const steps = [
     { id: 1, name: 'Vehicle Info' },
@@ -59,6 +63,56 @@ const ChecklistManager: React.FC = () => {
       exteriorPoints: prev.exteriorPoints.map(p => p.id === updatedPoint.id ? updatedPoint : p)
     }));
     setModalPoint(null);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadChecklists = async () => {
+      try {
+        const items = await getChecklists();
+        if (!cancelled) {
+          setRecentChecklists(items.slice(0, 5));
+          setWarning(null);
+        }
+      } catch {
+        if (!cancelled) {
+          setWarning('Unable to load checklists from backend.');
+        }
+      }
+    };
+
+    loadChecklists();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleCompleteCheckout = async () => {
+    if (!data.vehicleId.trim()) {
+      alert('Vehicle ID (UUID) is required before submitting.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      await apiPost('/api/checklists', {
+        checklistNumber: `CHK-${Date.now()}`,
+        rentalStartDate: today,
+        rentalEndDate: null,
+        customerName: data.signature.customerName || 'Walk-in Customer',
+        customerPhone: '+0000000000',
+        staffName: data.signature.inspectorName || 'Inspector',
+        rentalType: (data.type || 'pickup').toUpperCase(),
+        vehicleId: data.vehicleId.trim(),
+      });
+      alert('Inspection checklist submitted successfully.');
+    } catch {
+      alert('Failed to submit checklist. Ensure Vehicle ID is a valid UUID and required fields are filled.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderStepContent = () => {
@@ -102,6 +156,23 @@ const ChecklistManager: React.FC = () => {
         {renderStepContent()}
       </div>
 
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <h4 className="font-semibold text-gray-800">Recent Checklists (Backend)</h4>
+        {warning && <p className="text-xs text-amber-600 mt-1">{warning}</p>}
+        <div className="mt-3 space-y-2">
+          {recentChecklists.length === 0 ? (
+            <p className="text-sm text-gray-500">No checklist records found.</p>
+          ) : (
+            recentChecklists.map((item) => (
+              <div key={item.id} className="flex justify-between text-sm border-b border-gray-100 pb-1">
+                <span className="font-medium text-gray-700">{item.checklistNumber}</span>
+                <span className="text-gray-500">{item.vehicle?.plateNumber || '-'}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
       {/* Footer Navigation */}
       <div className="flex justify-between items-center">
         <button 
@@ -121,10 +192,11 @@ const ChecklistManager: React.FC = () => {
           </button>
         ) : (
           <button 
-            onClick={() => alert('Inspection Completed!')}
+            onClick={handleCompleteCheckout}
+            disabled={isSubmitting}
             className="flex items-center px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors shadow-md"
           >
-            Complete Check-out <CheckCircle size={18} className="ml-2" />
+            {isSubmitting ? 'Submitting...' : 'Complete Check-out'} <CheckCircle size={18} className="ml-2" />
           </button>
         )}
       </div>
