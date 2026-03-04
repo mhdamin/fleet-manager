@@ -153,57 +153,67 @@ const App: React.FC = () => {
 
   if (!authenticated) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-950 flex items-center justify-center p-4">
-        <form
-          onSubmit={handleLoginSubmit}
-          className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8"
-        >
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">FleetGuard Login</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Sign in to continue.</p>
+      <div className="min-h-screen flex bg-neutral-100 dark:bg-neutral-950">
+        <div className="hidden lg:flex flex-1 items-center justify-center bg-neutral-950 dark:bg-neutral-900 px-8">
+          <div className="text-center">
+            <Car className="h-14 w-14 mx-auto mb-6 text-white/95" strokeWidth={2} />
+            <h1 className="text-5xl font-semibold text-white tracking-tight">FleetGuard</h1>
+            <p className="mt-4 text-lg text-neutral-400">"The Open Source Fleet Management Platform."</p>
           </div>
+        </div>
 
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                autoComplete="username"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter username"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter password"
-              />
-            </div>
-          </div>
-
-          {loginError && <p className="text-sm text-red-600 mt-4">{loginError}</p>}
-
-          <button
-            type="submit"
-            disabled={isLoggingIn}
-            className="w-full mt-6 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg transition-colors"
+        <div className="flex-1 flex items-center justify-center p-8 bg-neutral-100 dark:bg-neutral-950">
+          <form
+            onSubmit={handleLoginSubmit}
+            className="w-full max-w-lg"
           >
-            {isLoggingIn ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
+            <h2 className="text-5xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">Sign in</h2>
+            <p className="mt-3 text-2xl text-neutral-500 dark:text-neutral-400">Enter your credentials to sign in</p>
+
+            <div className="mt-12 space-y-6">
+              <div>
+                <label htmlFor="username" className="block text-2xl font-medium text-neutral-800 dark:text-neutral-200 mb-3">
+                  Username
+                </label>
+                <input
+                  id="username"
+                  type="text"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  className="w-full h-16 px-5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xl text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 focus:border-transparent transition-colors"
+                  placeholder="Enter username"
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="block text-2xl font-medium text-neutral-800 dark:text-neutral-200 mb-3">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="w-full h-16 px-5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xl text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-500 dark:focus:ring-neutral-400 focus:border-transparent transition-colors"
+                  placeholder="Enter password"
+                />
+              </div>
+            </div>
+
+            {loginError && (
+              <p className="text-base text-red-600 dark:text-red-400 mt-5">{loginError}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full mt-8 h-16 rounded-xl bg-neutral-950 dark:bg-neutral-100 hover:bg-neutral-800 dark:hover:bg-neutral-300 disabled:opacity-60 text-white dark:text-neutral-950 text-2xl font-medium transition-colors"
+            >
+              {isLoggingIn ? 'Signing in...' : 'Login'}
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
@@ -211,18 +221,18 @@ const App: React.FC = () => {
   const rolesLabel = authUser?.roles?.join(', ') || 'No Roles';
 
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-900 font-sans overflow-hidden dark:bg-gray-950 dark:text-gray-100">
+    <div className="flex h-screen bg-neutral-100 text-neutral-900 font-sans overflow-hidden dark:bg-neutral-950 dark:text-neutral-100">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm z-20 hidden md:flex dark:bg-gray-900 dark:border-gray-800">
-        <div className="p-6 border-b border-gray-100 dark:border-gray-800">
-          <h1 className="text-xl font-bold text-gray-900 flex items-center dark:text-white">
-            <Car className="mr-2 text-blue-600 dark:text-blue-400" />
+      <aside className="w-64 bg-neutral-100 border-r border-neutral-300 flex flex-col shadow-sm z-20 hidden md:flex dark:bg-neutral-900 dark:border-neutral-800">
+        <div className="p-6 border-b border-neutral-300 dark:border-neutral-800">
+          <h1 className="text-xl font-bold text-neutral-900 flex items-center dark:text-white">
+            <Car className="mr-2 text-neutral-900 dark:text-neutral-100" />
             FleetGuard
           </h1>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
-          <p className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider dark:text-gray-500">Main Menu</p>
+          <p className="px-4 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider dark:text-neutral-500">Main Menu</p>
           <NavItem
             icon={<LayoutDashboard size={20} />}
             label="Dashboard"
@@ -242,9 +252,9 @@ const App: React.FC = () => {
             onClick={() => setCurrentView('checklist')}
           />
 
-          <div className="my-4 border-t border-gray-100 dark:border-gray-800"></div>
+          <div className="my-4 border-t border-neutral-300 dark:border-neutral-800"></div>
 
-          <p className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider dark:text-gray-500">Administration</p>
+          <p className="px-4 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider dark:text-neutral-500">Administration</p>
           <NavItem
             icon={<FileText size={20} />}
             label="Audit Trail"
@@ -269,45 +279,45 @@ const App: React.FC = () => {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm z-10 dark:bg-gray-900 dark:border-gray-800">
-          <div className="flex items-center text-gray-500 md:hidden dark:text-gray-300">
-            <Car className="mr-2 text-blue-600 dark:text-blue-400" />
-            <span className="font-bold text-gray-900 dark:text-white">FleetGuard</span>
+        <header className="h-16 bg-neutral-100 border-b border-neutral-300 flex items-center justify-between px-6 shadow-sm z-10 dark:bg-neutral-900 dark:border-neutral-800">
+          <div className="flex items-center text-neutral-600 md:hidden dark:text-neutral-300">
+            <Car className="mr-2 text-neutral-900 dark:text-neutral-100" />
+            <span className="font-bold text-neutral-900 dark:text-white">FleetGuard</span>
           </div>
 
           {/* Breadcrumb / Title Context (Optional, simplified here) */}
-          <div className="hidden md:block text-gray-500 text-sm dark:text-gray-400">
-            Rental Fleet Manager / <span className="text-gray-900 font-medium capitalize dark:text-gray-100">{currentView.replace('-', ' ')}</span>
+          <div className="hidden md:block text-neutral-500 text-sm dark:text-neutral-400">
+            Rental Fleet Manager / <span className="text-neutral-900 font-medium capitalize dark:text-neutral-100">{currentView.replace('-', ' ')}</span>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="relative hidden md:block">
-              <Search className="absolute left-2.5 top-2.5 text-gray-400 dark:text-gray-500" size={16} />
-              <input type="text" placeholder="Search..." className="pl-9 pr-4 py-2 bg-gray-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-blue-500 w-64 transition-all dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500" />
+              <Search className="absolute left-2.5 top-2.5 text-neutral-400 dark:text-neutral-500" size={16} />
+              <input type="text" placeholder="Search..." className="pl-9 pr-4 py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-sm focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 w-64 transition-all dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder:text-neutral-500 dark:focus:ring-neutral-400 dark:focus:border-neutral-400" />
             </div>
-            <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg dark:text-gray-300 dark:hover:bg-gray-800" aria-label="Notifications" title="Notifications">
+            <button className="relative p-2 text-neutral-500 hover:bg-neutral-200 rounded-lg dark:text-neutral-300 dark:hover:bg-neutral-800" aria-label="Notifications" title="Notifications">
               <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-gray-900"></span>
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-neutral-100 dark:border-neutral-900"></span>
             </button>
             <button
               onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')}
-              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg dark:text-gray-300 dark:hover:bg-gray-800"
+              className="p-2 text-neutral-500 hover:bg-neutral-200 rounded-lg dark:text-neutral-300 dark:hover:bg-neutral-800"
               aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
               title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
             >
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
             </button>
-            <div className="h-8 w-[1px] bg-gray-200 mx-1 dark:bg-gray-800"></div>
+            <div className="h-8 w-[1px] bg-neutral-300 mx-1 dark:bg-neutral-800"></div>
             <div className="relative" ref={accountMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsAccountMenuOpen((open) => !open)}
-                className="flex items-center gap-2 text-gray-700 font-medium text-sm hover:bg-gray-100 rounded-lg px-2 py-1.5 transition-colors dark:text-gray-200 dark:hover:bg-gray-800"
+                className="flex items-center gap-2 text-neutral-700 font-medium text-sm hover:bg-neutral-200 rounded-lg px-2 py-1.5 transition-colors dark:text-neutral-200 dark:hover:bg-neutral-800"
                 aria-expanded={isAccountMenuOpen}
                 aria-controls="account-menu"
               >
                 <span className="hidden md:inline">{authUser?.username || 'User'}</span>
-                <div className="bg-gray-100 p-1 rounded-full w-8 h-8 flex items-center justify-center dark:bg-gray-800">
+                <div className="bg-neutral-200 p-1 rounded-full w-8 h-8 flex items-center justify-center dark:bg-neutral-800">
                   <User size={20} />
                 </div>
                 <ChevronDown size={16} className={`transition-transform ${isAccountMenuOpen ? 'rotate-180' : ''}`} />
@@ -315,11 +325,11 @@ const App: React.FC = () => {
               {isAccountMenuOpen && (
                 <div
                   id="account-menu"
-                  className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-30 overflow-hidden dark:bg-gray-900 dark:border-gray-700"
+                  className="absolute right-0 mt-2 w-64 bg-neutral-100 border border-neutral-300 rounded-xl shadow-lg z-30 overflow-hidden dark:bg-neutral-900 dark:border-neutral-700"
                 >
-                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-                    <p className="text-sm font-semibold text-gray-900 truncate dark:text-gray-100">{authUser?.username || 'User'}</p>
-                    <p className="text-xs text-gray-500 truncate dark:text-gray-400">{rolesLabel}</p>
+                  <div className="px-4 py-3 border-b border-neutral-300 dark:border-neutral-800">
+                    <p className="text-sm font-semibold text-neutral-900 truncate dark:text-neutral-100">{authUser?.username || 'User'}</p>
+                    <p className="text-xs text-neutral-500 truncate dark:text-neutral-400">{rolesLabel}</p>
                   </div>
                   <div className="p-2">
                     <button
@@ -327,7 +337,7 @@ const App: React.FC = () => {
                         setIsAccountMenuOpen(false);
                         setIsAccountModalOpen(true);
                       }}
-                      className="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors dark:text-gray-200 dark:hover:bg-gray-800"
+                      className="w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-700 hover:bg-neutral-200 transition-colors dark:text-neutral-200 dark:hover:bg-neutral-800"
                     >
                       My Account
                     </button>
@@ -346,7 +356,7 @@ const App: React.FC = () => {
         </header>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-auto p-4 md:p-8 relative dark:bg-gray-950">
+        <div className="flex-1 overflow-auto p-4 md:p-8 relative dark:bg-neutral-950">
           {renderContent()}
         </div>
       </main>
@@ -360,21 +370,21 @@ const App: React.FC = () => {
           aria-label="My Account"
         >
           <div
-            className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 dark:bg-gray-900 dark:border-gray-700"
+            className="w-full max-w-md bg-neutral-100 rounded-xl shadow-2xl border border-neutral-300 dark:bg-neutral-900 dark:border-neutral-700"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">My Account</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Signed in account details</p>
+            <div className="px-6 py-4 border-b border-neutral-300 dark:border-neutral-800">
+              <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">My Account</h2>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">Signed in account details</p>
             </div>
             <div className="px-6 py-5 space-y-4">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider dark:text-gray-400">Username</p>
-                <p className="text-sm font-medium text-gray-900 mt-1 dark:text-gray-100">{authUser?.username || 'User'}</p>
+                <p className="text-xs text-neutral-500 uppercase tracking-wider dark:text-neutral-400">Username</p>
+                <p className="text-sm font-medium text-neutral-900 mt-1 dark:text-neutral-100">{authUser?.username || 'User'}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider dark:text-gray-400">Roles</p>
-                <p className="text-sm font-medium text-gray-900 mt-1 break-words dark:text-gray-100">{rolesLabel}</p>
+                <p className="text-xs text-neutral-500 uppercase tracking-wider dark:text-neutral-400">Roles</p>
+                <p className="text-sm font-medium text-neutral-900 mt-1 break-words dark:text-neutral-100">{rolesLabel}</p>
               </div>
               <div>
                 <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full border border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-900/30 dark:text-green-300">
@@ -382,10 +392,10 @@ const App: React.FC = () => {
                 </span>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 dark:border-gray-800">
+            <div className="px-6 py-4 border-t border-neutral-300 flex items-center justify-end gap-3 dark:border-neutral-800">
               <button
                 onClick={() => setIsAccountModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 transition-colors dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-neutral-300 text-neutral-700 hover:bg-neutral-200 transition-colors dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
               >
                 Close
               </button>
@@ -409,11 +419,11 @@ const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, labe
     onClick={onClick}
     className={`w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 mb-1
       ${active
-        ? 'bg-blue-50 text-blue-700 shadow-sm dark:bg-blue-950/50 dark:text-blue-300'
-        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'}
+        ? 'bg-neutral-950 text-neutral-100 shadow-sm dark:bg-neutral-100 dark:text-neutral-900'
+        : 'text-neutral-700 hover:bg-neutral-200 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-neutral-100'}
     `}
   >
-    <span className={`mr-3 ${active ? 'text-blue-600 dark:text-blue-300' : 'text-gray-400 dark:text-gray-500'}`}>{icon}</span>
+    <span className={`mr-3 ${active ? 'text-neutral-100 dark:text-neutral-900' : 'text-neutral-500 dark:text-neutral-500'}`}>{icon}</span>
     {label}
   </button>
 );
