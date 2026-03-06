@@ -1,7 +1,7 @@
 # FleetGuard Product Roadmap
 
 ## Product Goal
-Evolve the current admin-oriented prototype into a complete fleet rental platform that can run reservation, handover, rental, billing, settlement, and return operations end to end without breaking the existing management console design language.
+Evolve the current admin-oriented prototype into a complete fleet rental platform that can run reservation, handover, rental, billing, settlement, return, and exception handling operations end to end without breaking the existing management console design language.
 
 ## Current Implemented Modules
 - Dashboard
@@ -13,6 +13,9 @@ Evolve the current admin-oriented prototype into a complete fleet rental platfor
 - Invoices and receipts
 - Payments and refunds
 - Settlement ledger
+- Maintenance work orders
+- Damage cases
+- Exception queue
 - Vehicle Management
 - Checklist Management
 - Audit Trail
@@ -20,11 +23,10 @@ Evolve the current admin-oriented prototype into a complete fleet rental platfor
 - User Management
 
 ## Platform Gaps Still Ahead
-- Preventive maintenance scheduling and work orders
-- Damage case management and insurance claims
-- Notifications
 - Branch and location management
-- Pricing automation and promotional rules
+- Transfer workflows
+- Approval workflows and stronger permissions
+- Notifications and outbound messaging
 - Consumer self-service app
 
 ## Phase 1: Rental Core
@@ -44,38 +46,28 @@ Implemented financial completion for rental operations:
 - Refund processing flows
 - Return-linked settlement ledger
 
-### Phase 2 Screens
-- Pricing / Rate Cards
-  - list, create/edit modal, quote preview
-- Invoices
-  - invoice list, detail modal, status badges
-- Payments
-  - outstanding invoice capture flow, payment log, refund flow
-- Settlements
-  - settlement ledger, deposit application, refund and due balances
-
-### Phase 2 Contracts
-- `RatePlan`
-- `Invoice`
-- `Payment`
-- `Refund`
-- `SettlementSummary`
-
 ## Phase 3: Maintenance, Damage, and Exceptions
-Next phase should convert return outcomes into operational workflows:
-- maintenance scheduling
-- work orders
-- damage cases
-- repair and vendor tracking
-- exception queue driven by return outcomes and inspections
+Implemented operational handling for post-return issues:
+- maintenance work orders created from maintenance-hold returns
+- damage cases created from damage-review returns
+- exception queue combining maintenance, damage, and outstanding settlement follow-up
+- operational owner and status tracking for each exception type
+
+### Phase 3 Screens
+- Maintenance
+  - work order list, assignee/vendor editing, workshop status tracking
+- Damage Cases
+  - case list, insurance state, repair progression, resolution flow
+- Exception Queue
+  - combined queue for maintenance, damage, and unsettled balances with owner assignment
 
 ## Phase 4: Enterprise Operations and Controls
-Future enterprise hardening:
+Next phase should harden the platform for larger operations:
 - branch and location management
-- transfer workflows
-- approvals and stronger role controls
-- notification center
-- richer audit and compliance controls
+- vehicle transfer workflows
+- approval routing for sensitive actions
+- stronger role controls and permissions
+- notification center and richer compliance workflows
 
 ## Phase 5: Consumer Self-Service App
 Future customer-facing experience:
@@ -92,7 +84,9 @@ Future customer-facing experience:
 - Staff can start a rental and track it as active
 - Staff can process a return with charge preview and outcome classification
 - Booking, rental, invoice, payment, and settlement records stay commercially consistent
-- Deposits can move through held, applied, refunded, and partially refunded outcomes
+- Maintenance-hold returns generate work orders and stay operationally visible
+- Damage-review returns generate cases and stay operationally visible
+- Outstanding settlements can appear in the exception queue for follow-up
 - Existing dashboard, vehicles, checklist, reports, audit, and user modules continue to render correctly
 
 ## Design Constraints

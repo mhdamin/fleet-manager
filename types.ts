@@ -8,6 +8,9 @@ export type ViewState =
   | 'invoices'
   | 'payments'
   | 'settlements'
+  | 'maintenance'
+  | 'damage'
+  | 'exceptions'
   | 'vehicles'
   | 'checklist'
   | 'audit'
@@ -46,20 +49,17 @@ export interface LogEntry {
 }
 
 export type BookingStatus = 'Draft' | 'Confirmed' | 'Assigned' | 'Cancelled' | 'Checked Out' | 'Completed';
-
 export type RentalStatus = 'Reserved' | 'Active' | 'Overdue' | 'Closed';
-
 export type ReturnOutcome = 'Clean Close' | 'Charges Applied' | 'Damage Review Required' | 'Maintenance Hold';
-
 export type VehicleOperationalStatus = 'available' | 'reserved' | 'rented' | 'maintenance' | 'inspection_hold';
-
 export type DepositStatus = 'Held' | 'Applied' | 'Partially Refunded' | 'Refunded';
-
 export type InvoiceStatus = 'Draft' | 'Issued' | 'Paid' | 'Partially Paid' | 'Refunded';
-
 export type PaymentStatus = 'Pending' | 'Captured' | 'Failed' | 'Refunded';
-
 export type PaymentMethod = 'Card' | 'Bank Transfer' | 'Cash' | 'Corporate Credit';
+export type WorkOrderStatus = 'Open' | 'In Progress' | 'Waiting Parts' | 'Completed';
+export type DamageCaseStatus = 'Open' | 'Review' | 'Repairing' | 'Resolved';
+export type ExceptionStatus = 'Open' | 'Assigned' | 'Resolved';
+export type ExceptionType = 'Maintenance' | 'Damage' | 'Settlement';
 
 export interface PricingBreakdown {
   ratePlanId?: string;
@@ -234,7 +234,49 @@ export interface SettlementSummary {
   createdAt: string;
 }
 
-// Checklist Data Structure
+export interface MaintenanceWorkOrder {
+  id: string;
+  workOrderNumber: string;
+  rentalId: string;
+  returnId: string;
+  vehiclePlate: string;
+  issueSummary: string;
+  priority: 'Low' | 'Medium' | 'High';
+  assignee: string;
+  vendor?: string;
+  estimatedCost: number;
+  status: WorkOrderStatus;
+  createdAt: string;
+}
+
+export interface DamageCase {
+  id: string;
+  caseNumber: string;
+  rentalId: string;
+  returnId: string;
+  vehiclePlate: string;
+  customerName: string;
+  description: string;
+  severity: 'Minor' | 'Moderate' | 'Major';
+  estimatedRepairCost: number;
+  insuranceStatus: 'Unsubmitted' | 'Submitted' | 'Approved';
+  status: DamageCaseStatus;
+  createdAt: string;
+}
+
+export interface OperationalException {
+  id: string;
+  referenceNumber: string;
+  type: ExceptionType;
+  linkedId: string;
+  vehiclePlate: string;
+  customerName?: string;
+  summary: string;
+  owner: string;
+  status: ExceptionStatus;
+  createdAt: string;
+}
+
 export interface InspectionPoint {
   id: number;
   x: number;
