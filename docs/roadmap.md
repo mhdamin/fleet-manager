@@ -1,7 +1,7 @@
 # FleetGuard Product Roadmap
 
 ## Product Goal
-Evolve the current admin-oriented prototype into a complete fleet rental platform that can run reservation, handover, rental, billing, settlement, return, and exception handling operations end to end without breaking the existing management console design language.
+Evolve the current admin-oriented prototype into a complete fleet rental platform that can run reservation, handover, rental, billing, settlement, return, enterprise control, and customer self-service operations end to end without breaking the existing management console design language.
 
 ## Current Implemented Modules
 - Dashboard
@@ -16,18 +16,16 @@ Evolve the current admin-oriented prototype into a complete fleet rental platfor
 - Maintenance work orders
 - Damage cases
 - Exception queue
+- Branches and locations
+- Vehicle transfers
+- Approvals
+- Notification center
+- Customer portal
 - Vehicle Management
 - Checklist Management
 - Audit Trail
 - Reports & Print
 - User Management
-
-## Platform Gaps Still Ahead
-- Branch and location management
-- Transfer workflows
-- Approval workflows and stronger permissions
-- Notifications and outbound messaging
-- Consumer self-service app
 
 ## Phase 1: Rental Core
 Implemented foundation modules:
@@ -53,29 +51,35 @@ Implemented operational handling for post-return issues:
 - exception queue combining maintenance, damage, and outstanding settlement follow-up
 - operational owner and status tracking for each exception type
 
-### Phase 3 Screens
-- Maintenance
-  - work order list, assignee/vendor editing, workshop status tracking
-- Damage Cases
-  - case list, insurance state, repair progression, resolution flow
-- Exception Queue
-  - combined queue for maintenance, damage, and unsettled balances with owner assignment
-
 ## Phase 4: Enterprise Operations and Controls
-Next phase should harden the platform for larger operations:
-- branch and location management
-- vehicle transfer workflows
-- approval routing for sensitive actions
-- stronger role controls and permissions
-- notification center and richer compliance workflows
+Implemented enterprise administration and oversight capabilities:
+- branch and location directory
+- vehicle transfer workflow between branches
+- approval queue for sensitive actions
+- notification center spanning operations, finance, and customer updates
+
+### Phase 4 Screens
+- Branches
+  - distributed branch overview, local manager ownership, branch fleet counts
+- Transfers
+  - inter-branch request flow, transit tracking, completion actions
+- Approvals
+  - pending approval review, approver assignment, approve/reject decisions
+- Notifications
+  - multi-channel alert list with read state tracking
 
 ## Phase 5: Consumer Self-Service App
-Future customer-facing experience:
-- account login and profile
-- vehicle search and booking
-- checkout and payment
-- booking management and trip self-service
-- support and roadside request flows
+Implemented a customer-facing portal on the same system data:
+- customer profile selector for portal preview
+- active rate-plan search and browsing
+- booking and trip summary for the selected customer
+- customer invoice visibility and balance review
+
+### Phase 5 Screens
+- Customer Portal
+  - search and browse available rate plans
+  - review upcoming trips and booking history
+  - review invoices and outstanding balances
 
 ## Acceptance Criteria
 - Staff can create a customer and use that customer in a booking
@@ -83,14 +87,15 @@ Future customer-facing experience:
 - Staff can convert a confirmed or assigned booking into a rental contract
 - Staff can start a rental and track it as active
 - Staff can process a return with charge preview and outcome classification
-- Booking, rental, invoice, payment, and settlement records stay commercially consistent
-- Maintenance-hold returns generate work orders and stay operationally visible
-- Damage-review returns generate cases and stay operationally visible
-- Outstanding settlements can appear in the exception queue for follow-up
+- Booking, rental, invoice, payment, settlement, maintenance, and damage records stay operationally connected
+- Branch transfers can be created and moved through request, transit, and completion states
+- Approval requests can be reviewed and decided
+- Notifications surface enterprise and customer-facing updates in one place
+- Customers can browse rates, review trips, and review billing data from the portal
 - Existing dashboard, vehicles, checklist, reports, audit, and user modules continue to render correctly
 
 ## Design Constraints
-- Reuse the current shared `AppUI` patterns
-- Preserve the dark sidebar and light operational console layout
-- Keep table density, badge language, and modal interactions consistent with the rest of the app
-- Avoid introducing a consumer storefront visual style before the consumer-app phase
+- Reuse the current shared `AppUI` patterns for all admin modules
+- Preserve the dark sidebar and light operational console layout for enterprise features
+- Keep table density, badge language, and modal interactions consistent with the rest of the console
+- Let the customer portal feel distinct through a lighter self-service layout while still sharing the same data model and codebase
