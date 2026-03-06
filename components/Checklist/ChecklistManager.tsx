@@ -242,7 +242,7 @@ const ChecklistManager: React.FC = () => {
                 <div style={{ textAlign: 'left' }}>
                   <div style={{ fontWeight: 600 }}>Recent Checklists</div>
                   <div className="app-muted" style={{ fontSize: 12 }}>
-                    {recentChecklists.length} items{latestChecklist ? ` · Latest ${latestChecklist.checklistNumber}` : ''}
+                    {recentChecklists.length} items{latestChecklist ? ` - Latest ${latestChecklist.checklistNumber}` : ''}
                   </div>
                 </div>
               </div>
@@ -384,7 +384,14 @@ const StepExterior = ({ points, pointMetaById, onPointClick }: { points: Inspect
     </div>
     <div className="app-exterior-stage">
       <div className="app-exterior-stage__canvas">
-        <img src="/car_damage_map_pixel_perfect.svg" alt="Exterior inspection vehicle map" className="app-exterior-vehicle" />
+        <img
+          src="/car_damage_map_base.png"
+          alt="Exterior inspection vehicle map"
+          className="app-exterior-vehicle"
+          width={640}
+          height={841}
+          decoding="async"
+        />
         {points.map((point) => {
           const meta = pointMetaById[point.id];
           return <button key={point.id} type="button" className={cx('app-exterior-point', `app-exterior-point--${pointTone(point.status)}`)} style={{ left: `${meta.x}%`, top: `${meta.y}%` }} onClick={() => onPointClick(point)} aria-label={`${meta.name} (${meta.displayNumber})`} title={meta.name}>{meta.displayNumber}</button>;

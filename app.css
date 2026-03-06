@@ -836,29 +836,45 @@ body ::-webkit-scrollbar-thumb:hover {
 .app-exterior-point {
   position: absolute;
   transform: translate(-50%, -50%);
-  min-width: 34px;
-  height: 34px;
+  width: 54px;
+  height: 54px;
   border-radius: 999px;
   border: 0;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
+  background: transparent;
+  color: transparent;
+  font-size: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 24px rgba(23, 23, 23, 0.12);
+  cursor: pointer;
 }
 
-.app-exterior-point--success {
-  background: #57c36f;
+.app-exterior-point:hover,
+.app-exterior-point:focus-visible {
+  outline: none;
 }
 
-.app-exterior-point--danger {
-  background: #fb5f5f;
+.app-exterior-point:hover::after,
+.app-exterior-point:focus-visible::after {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border-radius: 999px;
 }
 
-.app-exterior-point--neutral {
-  background: #9ca3af;
+.app-exterior-point--success:hover::after,
+.app-exterior-point--success:focus-visible::after {
+  box-shadow: 0 0 0 2px rgba(87, 195, 111, 0.28);
+}
+
+.app-exterior-point--danger:hover::after,
+.app-exterior-point--danger:focus-visible::after {
+  box-shadow: 0 0 0 2px rgba(251, 95, 95, 0.28);
+}
+
+.app-exterior-point--neutral:hover::after,
+.app-exterior-point--neutral:focus-visible::after {
+  box-shadow: 0 0 0 2px rgba(156, 163, 175, 0.28);
 }
 
 .app-modal-status-grid {
