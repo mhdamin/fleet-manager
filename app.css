@@ -992,3 +992,17 @@ body ::-webkit-scrollbar-thumb:hover {
     padding: 4px 8px;
   }
 }
+
+.app-exterior-stage__canvas {
+  width: min(100%, 640px);
+  aspect-ratio: 768 / 1009;
+  padding: 0;
+  overflow: visible;
+}
+
+.app-exterior-vehicle {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}

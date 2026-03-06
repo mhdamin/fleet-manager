@@ -384,51 +384,7 @@ const StepExterior = ({ points, pointMetaById, onPointClick }: { points: Inspect
     </div>
     <div className="app-exterior-stage">
       <div className="app-exterior-stage__canvas">
-        <svg viewBox="0 0 520 920" className="app-exterior-vehicle" aria-label="Top view vehicle inspection diagram">
-          <defs>
-            <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="0" dy="8" stdDeviation="18" floodColor="#171717" floodOpacity="0.08" /></filter>
-          </defs>
-          <g filter="url(#softShadow)">
-            <rect x="155" y="20" width="210" height="90" rx="18" fill="#ffffff" stroke="#171717" strokeWidth="4" />
-            <circle cx="172" cy="64" r="15" fill="#fbbf24" stroke="#171717" strokeWidth="4" />
-            <circle cx="172" cy="86" r="12" fill="#ef4444" stroke="#171717" strokeWidth="4" />
-            <circle cx="348" cy="64" r="15" fill="#fbbf24" stroke="#171717" strokeWidth="4" />
-            <circle cx="348" cy="86" r="12" fill="#ef4444" stroke="#171717" strokeWidth="4" />
-            <rect x="201" y="45" width="118" height="40" fill="#c7e9c0" stroke="#171717" strokeWidth="4" />
-            <path d="M210 110 H310 C327 110 340 122 340 138 V150 H180 V138 C180 122 193 110 210 110 Z" fill="#f7f7f7" stroke="#171717" strokeWidth="4" />
-            <circle cx="360" cy="132" r="8" fill="#fff" stroke="#171717" strokeWidth="4" />
-            <path d="M215 170 C180 185 168 235 165 290 L160 655 C159 700 180 742 218 786 L238 804 C248 814 266 814 276 804 L304 780 C343 744 361 702 360 654 L354 290 C351 235 340 185 305 170 Z" fill="#ffffff" stroke="#171717" strokeWidth="4" />
-            <path d="M220 360 C252 342 269 338 300 340 L327 346 L310 430 L210 430 L193 346 Z" fill="#c7e9c0" stroke="#171717" strokeWidth="4" />
-            <rect x="222" y="470" width="76" height="118" rx="18" fill="#f8f8f8" stroke="#171717" strokeWidth="4" />
-            <path d="M210 640 L308 640 L296 740 C280 748 244 748 224 740 Z" fill="#c7e9c0" stroke="#171717" strokeWidth="4" />
-            <path d="M192 232 H328" stroke="#171717" strokeWidth="4" strokeLinecap="round" />
-            <path d="M102 178 C130 178 144 194 144 228 V742 C144 778 132 796 112 796 H98 C88 796 82 786 82 772 V714 C82 700 86 690 95 681 L120 656 V314 L95 288 C86 279 82 269 82 255 V202 C82 188 88 178 102 178 Z" fill="#f8f8f8" stroke="#171717" strokeWidth="4" />
-            <path d="M418 178 C390 178 376 194 376 228 V742 C376 778 388 796 408 796 H422 C432 796 438 786 438 772 V714 C438 700 434 690 425 681 L400 656 V314 L425 288 C434 279 438 269 438 255 V202 C438 188 432 178 418 178 Z" fill="#f8f8f8" stroke="#171717" strokeWidth="4" />
-            <path d="M144 392 L120 392 V540 L144 540" stroke="#171717" strokeWidth="4" fill="none" />
-            <path d="M376 392 L400 392 V540 L376 540" stroke="#171717" strokeWidth="4" fill="none" />
-            <path d="M144 436 L190 440 L190 494 L144 490" fill="#c7e9c0" stroke="#171717" strokeWidth="4" />
-            <path d="M376 436 L330 440 L330 494 L376 490" fill="#c7e9c0" stroke="#171717" strokeWidth="4" />
-            <path d="M144 520 L185 524 L185 618 L144 690" fill="#ffffff" stroke="#171717" strokeWidth="4" />
-            <path d="M376 520 L335 524 L335 618 L376 690" fill="#ffffff" stroke="#171717" strokeWidth="4" />
-            <path d="M144 314 L190 318 L190 426 L144 426" fill="#ffffff" stroke="#171717" strokeWidth="4" />
-            <path d="M376 314 L330 318 L330 426 L376 426" fill="#ffffff" stroke="#171717" strokeWidth="4" />
-            <circle cx="60" cy="272" r="42" fill="#f8f8f8" stroke="#171717" strokeWidth="4" /><circle cx="60" cy="272" r="24" fill="#d1d5db" stroke="#171717" strokeWidth="4" />
-            <circle cx="60" cy="632" r="42" fill="#f8f8f8" stroke="#171717" strokeWidth="4" /><circle cx="60" cy="632" r="24" fill="#d1d5db" stroke="#171717" strokeWidth="4" />
-            <circle cx="460" cy="272" r="42" fill="#f8f8f8" stroke="#171717" strokeWidth="4" /><circle cx="460" cy="272" r="24" fill="#d1d5db" stroke="#171717" strokeWidth="4" />
-            <circle cx="460" cy="632" r="42" fill="#f8f8f8" stroke="#171717" strokeWidth="4" /><circle cx="460" cy="632" r="24" fill="#d1d5db" stroke="#171717" strokeWidth="4" />
-            <rect x="190" y="808" width="140" height="22" fill="#f7f7f7" stroke="#171717" strokeWidth="4" />
-            <g>
-              <rect x="165" y="852" width="190" height="54" rx="10" fill="#f1f1f1" stroke="#171717" strokeWidth="4" />
-              <rect x="168" y="840" width="40" height="22" rx="4" fill="#ef4444" stroke="#171717" strokeWidth="4" />
-              <rect x="208" y="840" width="42" height="22" rx="4" fill="#fbbf24" stroke="#171717" strokeWidth="4" />
-              <rect x="270" y="840" width="42" height="22" rx="4" fill="#fbbf24" stroke="#171717" strokeWidth="4" />
-              <rect x="312" y="840" width="40" height="22" rx="4" fill="#ef4444" stroke="#171717" strokeWidth="4" />
-              <rect x="236" y="857" width="48" height="18" fill="#ffffff" stroke="#171717" strokeWidth="4" />
-              <rect x="185" y="904" width="30" height="46" rx="8" fill="#d1d5db" stroke="#171717" strokeWidth="4" />
-              <rect x="305" y="904" width="30" height="46" rx="8" fill="#d1d5db" stroke="#171717" strokeWidth="4" />
-            </g>
-          </g>
-        </svg>
+        <img src="/car_damage_map_pixel_perfect.svg" alt="Exterior inspection vehicle map" className="app-exterior-vehicle" />
         {points.map((point) => {
           const meta = pointMetaById[point.id];
           return <button key={point.id} type="button" className={cx('app-exterior-point', `app-exterior-point--${pointTone(point.status)}`)} style={{ left: `${meta.x}%`, top: `${meta.y}%` }} onClick={() => onPointClick(point)} aria-label={`${meta.name} (${meta.displayNumber})`} title={meta.name}>{meta.displayNumber}</button>;
@@ -600,3 +556,4 @@ const StepSummary = ({ data, signed, pointMetaById }: { data: ChecklistData; sig
 };
 
 export default ChecklistManager;
+
