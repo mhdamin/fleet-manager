@@ -292,7 +292,6 @@ const App: React.FC = () => {
             <div className="app-topbar__crumb">
               Rental Fleet Manager / <strong>{viewLabels[currentView]}</strong>
             </div>
-            <div className="app-topbar__brand">FleetGuard</div>
           </div>
 
           <div className="app-topbar__actions">
