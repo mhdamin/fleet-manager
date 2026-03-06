@@ -1,5 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, Filter, Plus, Car, CheckCircle, Key, PenTool, Eye, Edit2, Trash2, X } from 'lucide-react';
+import { Car, CheckCircle, Edit2, Eye, Filter, Key, PenTool, Plus, Search, Trash2 } from 'lucide-react';
+import {
+  Button,
+  FormField,
+  ModalShell,
+  SectionHeader,
+  SelectInput,
+  StatCard,
+  StatusBadge,
+  TableCard,
+  TextInput,
+} from './AppUI';
 import {
   createVehicle,
   deleteVehicleById,
@@ -30,6 +41,30 @@ const DEFAULT_VEHICLE_FORM: NewVehicleForm = {
   manufacturer: '',
   year: String(new Date().getFullYear()),
   status: 'Available',
+};
+
+const statusTone = (status: string): 'success' | 'neutral' | 'danger' => {
+  switch (status) {
+    case 'Available':
+      return 'success';
+    case 'Maintenance':
+      return 'danger';
+    default:
+      return 'neutral';
+  }
+};
+
+const statusIcon = (status: string) => {
+  switch (status) {
+    case 'Available':
+      return <CheckCircle size={14} />;
+    case 'Rented':
+      return <Key size={14} />;
+    case 'Maintenance':
+      return <PenTool size={14} />;
+    default:
+      return <Car size={14} />;
+  }
 };
 
 const VehicleManagement: React.FC = () => {
@@ -69,32 +104,6 @@ const VehicleManagement: React.FC = () => {
       return Boolean(matchPlate || matchModel || matchManufacturer);
     });
   }, [vehicles, searchTerm]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Available':
-        return 'bg-green-100 text-green-700 border-green-200';
-      case 'Rented':
-        return 'bg-gray-100 text-gray-700 border-gray-200';
-      case 'Maintenance':
-        return 'bg-red-100 text-red-700 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-  const getIcon = (status: string) => {
-    switch (status) {
-      case 'Available':
-        return <CheckCircle size={14} className="mr-1" />;
-      case 'Rented':
-        return <Key size={14} className="mr-1" />;
-      case 'Maintenance':
-        return <PenTool size={14} className="mr-1" />;
-      default:
-        return null;
-    }
-  };
 
   const handleCreateVehicle = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -136,149 +145,136 @@ const VehicleManagement: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Vehicle Management</h2>
-          <p className="text-gray-500">Manage your fleet vehicles and vehicle records.</p>
-          {warning && <p className="text-xs text-amber-600 mt-1">{warning}</p>}
-        </div>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg flex items-center shadow-md transition-colors"
-        >
-          <Plus size={18} className="mr-2" /> Add Vehicle
-        </button>
+    <div className="app-grid" style={{ gap: 24 }}>
+      <SectionHeader
+        title="Vehicle Management"
+        description="Manage fleet vehicles, statuses, and operational readiness."
+        warning={warning}
+        action={
+          <Button type="button" onClick={() => setIsCreateModalOpen(true)}>
+            <Plus size={16} /> Add Vehicle
+          </Button>
+        }
+      />
+
+      <div className="app-grid app-grid--stats">
+        <StatCard label="Total Vehicles" value={stats.totalVehicles} icon={<Car size={20} />} />
+        <StatCard label="Available" value={stats.availableVehicles} icon={<CheckCircle size={20} />} />
+        <StatCard label="Rented Out" value={stats.rentedVehicles} icon={<Key size={20} />} />
+        <StatCard label="Maintenance" value={stats.maintenanceVehicles} icon={<PenTool size={20} />} />
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex justify-between items-center">
-          <div>
-            <p className="text-xs text-gray-500">Total Vehicles</p>
-            <p className="text-xl font-bold">{stats.totalVehicles}</p>
+      <div className="app-card" style={{ padding: 16 }}>
+        <div className="app-split" style={{ flexWrap: 'wrap' }}>
+          <div className="app-search" style={{ flex: '1 1 320px' }}>
+            <Search size={16} />
+            <TextInput
+              type="text"
+              placeholder="Search vehicles..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <Car className="text-gray-300" />
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex justify-between items-center">
-          <div>
-            <p className="text-xs text-gray-500">Available</p>
-            <p className="text-xl font-bold">{stats.availableVehicles}</p>
-          </div>
-          <CheckCircle className="text-gray-300" />
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex justify-between items-center">
-          <div>
-            <p className="text-xs text-gray-500">Rented Out</p>
-            <p className="text-xl font-bold">{stats.rentedVehicles}</p>
-          </div>
-          <Key className="text-gray-300" />
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex justify-between items-center">
-          <div>
-            <p className="text-xs text-gray-500">Maintenance</p>
-            <p className="text-xl font-bold">{stats.maintenanceVehicles}</p>
-          </div>
-          <PenTool className="text-gray-300" />
+          <Button variant="secondary" type="button">
+            <Filter size={16} /> Filter
+          </Button>
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search vehicles..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="flex gap-4">
-          <button className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
-            <Filter size={18} className="mr-2" /> Filter
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      <TableCard>
+        <div className="app-table-wrap">
+          <table className="app-table">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider">
-                <th className="px-6 py-4">ID</th>
-                <th className="px-6 py-4">Make / Model</th>
-                <th className="px-6 py-4">License Plate</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Year</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+              <tr>
+                <th>ID</th>
+                <th>Make / Model</th>
+                <th>License Plate</th>
+                <th>Status</th>
+                <th>Year</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody>
               {filteredVehicles.map((vehicle) => (
-                <tr key={vehicle.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-800 font-mono text-xs">{vehicle.id}</td>
-                  <td className="px-6 py-4 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-bold">
-                      {(vehicle.manufacturer || 'CAR').substring(0, 3).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">{vehicle.manufacturer} {vehicle.model}</div>
-                      <div className="text-xs text-gray-500">{vehicle.year}</div>
+                <tr key={vehicle.id}>
+                  <td className="app-mono" style={{ fontSize: 12 }}>{vehicle.id}</td>
+                  <td>
+                    <div className="app-user-chip">
+                      <div className="app-avatar">{(vehicle.manufacturer || 'CAR').slice(0, 3).toUpperCase()}</div>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{vehicle.manufacturer} {vehicle.model}</div>
+                        <div className="app-muted" style={{ fontSize: 12 }}>{vehicle.year}</div>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-gray-600 font-mono">{vehicle.plateNumber}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(vehicle.status)}`}>
-                      {getIcon(vehicle.status)}
-                      {vehicle.status}
-                    </span>
+                  <td className="app-mono">{vehicle.plateNumber}</td>
+                  <td>
+                    <StatusBadge tone={statusTone(vehicle.status)}>
+                      {statusIcon(vehicle.status)} {vehicle.status}
+                    </StatusBadge>
                   </td>
-                  <td className="px-6 py-4 text-gray-600 text-sm">{vehicle.year}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button className="text-gray-400 hover:text-blue-600" aria-label="View vehicle"><Eye size={18} /></button>
-                      <button className="text-gray-400 hover:text-amber-600" aria-label="Edit vehicle"><Edit2 size={18} /></button>
-                      <button onClick={() => handleDeleteVehicle(vehicle.id)} className="text-gray-400 hover:text-red-600" aria-label="Delete vehicle"><Trash2 size={18} /></button>
+                  <td className="app-muted">{vehicle.year}</td>
+                  <td>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                      <Button variant="ghost" size="sm" type="button"><Eye size={14} /></Button>
+                      <Button variant="ghost" size="sm" type="button"><Edit2 size={14} /></Button>
+                      <Button variant="danger" size="sm" type="button" onClick={() => handleDeleteVehicle(vehicle.id)}>
+                        <Trash2 size={14} />
+                      </Button>
                     </div>
                   </td>
                 </tr>
               ))}
               {filteredVehicles.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">No vehicles found.</td>
+                  <td colSpan={6} className="app-empty">No vehicles found.</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </div>
+      </TableCard>
 
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <form onSubmit={handleCreateVehicle} className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Create Vehicle</h3>
-              <button type="button" onClick={() => setIsCreateModalOpen(false)} className="text-gray-400 hover:text-gray-600" aria-label="Close modal">
-                <X size={18} />
-              </button>
+      {isCreateModalOpen ? (
+        <ModalShell
+          title="Create Vehicle"
+          onClose={() => setIsCreateModalOpen(false)}
+          footer={
+            <>
+              <Button variant="secondary" type="button" onClick={() => setIsCreateModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" form="create-vehicle-form" disabled={submitting}>
+                {submitting ? 'Creating...' : 'Create Vehicle'}
+              </Button>
+            </>
+          }
+        >
+          <form id="create-vehicle-form" onSubmit={handleCreateVehicle} className="app-grid">
+            <FormField label="Plate Number">
+              <TextInput value={form.plateNumber} onChange={(e) => setForm((p) => ({ ...p, plateNumber: e.target.value }))} />
+            </FormField>
+            <FormField label="Manufacturer">
+              <TextInput value={form.manufacturer} onChange={(e) => setForm((p) => ({ ...p, manufacturer: e.target.value }))} />
+            </FormField>
+            <FormField label="Model">
+              <TextInput value={form.model} onChange={(e) => setForm((p) => ({ ...p, model: e.target.value }))} />
+            </FormField>
+            <div className="app-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+              <FormField label="Year">
+                <TextInput value={form.year} onChange={(e) => setForm((p) => ({ ...p, year: e.target.value }))} />
+              </FormField>
+              <FormField label="Status">
+                <SelectInput value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
+                  <option value="Available">Available</option>
+                  <option value="Rented">Rented</option>
+                  <option value="Maintenance">Maintenance</option>
+                </SelectInput>
+              </FormField>
             </div>
-
-            <input value={form.plateNumber} onChange={(e) => setForm((p) => ({ ...p, plateNumber: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Plate Number" />
-            <input value={form.manufacturer} onChange={(e) => setForm((p) => ({ ...p, manufacturer: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Manufacturer" />
-            <input value={form.model} onChange={(e) => setForm((p) => ({ ...p, model: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Model" />
-            <input value={form.year} onChange={(e) => setForm((p) => ({ ...p, year: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Year" />
-            <select value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white">
-              <option value="Available">Available</option>
-              <option value="Rented">Rented</option>
-              <option value="Maintenance">Maintenance</option>
-            </select>
-
-            <button type="submit" disabled={submitting} className="w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 disabled:opacity-60">
-              {submitting ? 'Creating...' : 'Create Vehicle'}
-            </button>
           </form>
-        </div>
-      )}
+        </ModalShell>
+      ) : null}
     </div>
   );
 };

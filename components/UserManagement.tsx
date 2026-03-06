@@ -1,5 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Edit2, Lock, Trash2, X } from 'lucide-react';
+import { Edit2, Lock, Plus, Trash2 } from 'lucide-react';
+import {
+  Button,
+  FormField,
+  ModalShell,
+  SectionHeader,
+  SelectInput,
+  StatCard,
+  StatusBadge,
+  TableCard,
+  TextInput,
+} from './AppUI';
 import {
   createUser,
   deleteUserById,
@@ -68,11 +79,7 @@ const UserManagement: React.FC = () => {
     setError(null);
 
     try {
-      await createUser({
-        username: form.username.trim(),
-        password: form.password,
-        roles: [form.role],
-      });
+      await createUser({ username: form.username.trim(), password: form.password, roles: [form.role] });
       setIsCreateModalOpen(false);
       setForm(DEFAULT_FORM);
       await loadData();
@@ -90,10 +97,7 @@ const UserManagement: React.FC = () => {
     }
 
     try {
-      await updateUserById(user.id, {
-        username: nextUsername.trim(),
-        roles: user.roles,
-      });
+      await updateUserById(user.id, { username: nextUsername.trim(), roles: user.roles });
       await loadData();
     } catch {
       setError('Failed to update user.');
@@ -128,151 +132,133 @@ const UserManagement: React.FC = () => {
   };
 
   const activeUsers = useMemo(() => users.filter((user) => (user.status || '').toUpperCase() !== 'INACTIVE').length, [users]);
-  const adminUsers = useMemo(() => users.filter((user) => (user.roles || []).some((role) => role === 'ROLE_ADMIN' || role === 'ROLE_SUPERADMIN')).length, [users]);
+  const adminUsers = useMemo(
+    () => users.filter((user) => (user.roles || []).some((role) => role === 'ROLE_ADMIN' || role === 'ROLE_SUPERADMIN')).length,
+    [users]
+  );
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">User Management</h2>
-          <p className="text-gray-500">Manage user accounts, roles, and permissions.</p>
-          {error && <p className="text-xs text-amber-600 mt-1">{error}</p>}
-        </div>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="bg-gray-900 text-white px-4 py-2 rounded-lg flex items-center text-sm font-medium hover:bg-gray-800"
-        >
-          <Plus size={16} className="mr-2" /> Add New User
-        </button>
+    <div className="app-grid" style={{ gap: 24 }}>
+      <SectionHeader
+        title="User Management"
+        description="Manage identities, roles, access, and account lifecycle controls."
+        warning={error}
+        action={
+          <Button type="button" onClick={() => setIsCreateModalOpen(true)}>
+            <Plus size={16} /> Add New User
+          </Button>
+        }
+      />
+
+      <div className="app-grid app-grid--stats">
+        <StatCard label="Total Users" value={users.length} />
+        <StatCard label="Active Users" value={activeUsers} />
+        <StatCard label="Administrators" value={adminUsers} />
+        <StatCard label="Assignable Roles" value={roles.length} />
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500">Total Users</p><p className="text-xl font-bold">{users.length}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500">Active Users</p><p className="text-xl font-bold">{activeUsers}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500">Administrators</p><p className="text-xl font-bold">{adminUsers}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500">Assignable Roles</p><p className="text-xl font-bold">{roles.length}</p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold">
-              <th className="px-6 py-4">User</th>
-              <th className="px-6 py-4">Role(s)</th>
-              <th className="px-6 py-4">Last Login</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {loading ? (
+      <TableCard>
+        <div className="app-table-wrap">
+          <table className="app-table">
+            <thead>
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">Loading users...</td>
+                <th>User</th>
+                <th>Role(s)</th>
+                <th>Last Login</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
-            ) : users.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">No users found.</td>
-              </tr>
-            ) : (
-              users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 text-sm">
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="font-medium text-gray-900">{user.username}</span>
-                      <span className="text-xs text-gray-500">ID: {user.id}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-1 flex-wrap">
-                      {(user.roles || []).map((role) => (
-                        <span key={`${user.id}-${role}`} className="px-2 py-1 rounded-full text-xs font-bold text-white bg-gray-700">
-                          {normalizeRole(role)}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">{user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}</td>
-                  <td className="px-6 py-4">
-                    <span className="text-green-600 bg-green-50 px-2 py-1 rounded-full text-xs font-medium border border-green-200">
-                      {user.status || 'Active'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2 text-gray-400">
-                      <button onClick={() => handleEditUser(user)} className="hover:text-blue-600" aria-label="Edit user"><Edit2 size={16} /></button>
-                      <button onClick={() => handleResetPassword(user)} className="hover:text-gray-600" aria-label="Reset password"><Lock size={16} /></button>
-                      <button onClick={() => handleDeleteUser(user)} className="hover:text-red-600" aria-label="Delete user"><Trash2 size={16} /></button>
-                    </div>
-                  </td>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="app-empty">Loading users...</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : users.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="app-empty">No users found.</td>
+                </tr>
+              ) : (
+                users.map((user) => (
+                  <tr key={user.id}>
+                    <td>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{user.username}</div>
+                        <div className="app-muted" style={{ fontSize: 12 }}>ID: {user.id}</div>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {(user.roles || []).map((role) => (
+                          <StatusBadge key={`${user.id}-${role}`} tone="inverse">
+                            {normalizeRole(role)}
+                          </StatusBadge>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="app-muted">{user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}</td>
+                    <td>
+                      <StatusBadge tone={(user.status || 'Active').toUpperCase() === 'INACTIVE' ? 'warning' : 'success'}>
+                        {user.status || 'Active'}
+                      </StatusBadge>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                        <Button variant="ghost" size="sm" type="button" onClick={() => handleEditUser(user)}>
+                          <Edit2 size={14} />
+                        </Button>
+                        <Button variant="secondary" size="sm" type="button" onClick={() => handleResetPassword(user)}>
+                          <Lock size={14} />
+                        </Button>
+                        <Button variant="danger" size="sm" type="button" onClick={() => handleDeleteUser(user)}>
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </TableCard>
 
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <form onSubmit={handleCreateUser} className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Create New User</h3>
-              <button type="button" onClick={() => setIsCreateModalOpen(false)} className="text-gray-400 hover:text-gray-600" aria-label="Close modal">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Username</label>
-              <input
-                value={form.username}
-                onChange={(event) => setForm((prev) => ({ ...prev, username: event.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                placeholder="Enter username"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Password</label>
-              <input
+      {isCreateModalOpen ? (
+        <ModalShell
+          title="Create New User"
+          onClose={() => setIsCreateModalOpen(false)}
+          footer={
+            <>
+              <Button variant="secondary" type="button" onClick={() => setIsCreateModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" form="create-user-form" disabled={submitting}>
+                {submitting ? 'Creating...' : 'Create User'}
+              </Button>
+            </>
+          }
+        >
+          <form id="create-user-form" onSubmit={handleCreateUser} className="app-grid">
+            <FormField label="Username">
+              <TextInput value={form.username} onChange={(event) => setForm((prev) => ({ ...prev, username: event.target.value }))} />
+            </FormField>
+            <FormField label="Password">
+              <TextInput
                 type="password"
                 value={form.password}
                 onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                placeholder="Enter password"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Role</label>
-              <select
-                value={form.role}
-                onChange={(event) => setForm((prev) => ({ ...prev, role: event.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white"
-              >
+            </FormField>
+            <FormField label="Role">
+              <SelectInput value={form.role} onChange={(event) => setForm((prev) => ({ ...prev, role: event.target.value }))}>
                 {roles.map((role) => (
                   <option key={role} value={role}>{normalizeRole(role)}</option>
                 ))}
-              </select>
-            </div>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 disabled:opacity-60"
-            >
-              {submitting ? 'Creating...' : 'Create User'}
-            </button>
+              </SelectInput>
+            </FormField>
           </form>
-        </div>
-      )}
+        </ModalShell>
+      ) : null}
     </div>
   );
 };

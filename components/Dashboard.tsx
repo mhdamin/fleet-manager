@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Car, CheckCircle, Key, PenTool, AlertTriangle, ArrowRight } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Car, CheckCircle, Key, PenTool } from 'lucide-react';
+import { Card, SectionHeader, StatCard, Button } from './AppUI';
 import { getActivities, getVehicleStats, type ActivityResponse } from '../services/api';
 
 interface DashboardSummary {
@@ -21,6 +22,19 @@ const FALLBACK_SUMMARY: DashboardSummary = {
   availableVehicles: 189,
   rentedOutVehicles: 42,
   maintenanceVehicles: 16,
+};
+
+const iconForType = (type: ActivityItem['type']) => {
+  switch (type) {
+    case 'vehicle':
+      return <Car size={16} />;
+    case 'alert':
+      return <AlertTriangle size={16} />;
+    case 'success':
+      return <CheckCircle size={16} />;
+    default:
+      return <PenTool size={16} />;
+  }
 };
 
 const Dashboard: React.FC = () => {
@@ -84,94 +98,45 @@ const Dashboard: React.FC = () => {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800">Dashboard Overview</h2>
-        <p className="text-gray-500">Welcome back! Here's what's happening with your fleet today.</p>
-        {summaryWarning && <p className="text-xs text-amber-600 mt-1">{summaryWarning}</p>}
+    <div className="app-grid" style={{ gap: 24 }}>
+      <SectionHeader
+        title="Dashboard Overview"
+        description="Welcome back. Here's what is happening across the fleet today."
+        warning={summaryWarning}
+      />
+
+      <div className="app-grid app-grid--stats">
+        <StatCard label="Total Vehicles" value={summary.totalVehicles} icon={<Car size={20} />} />
+        <StatCard label="Available" value={summary.availableVehicles} icon={<CheckCircle size={20} />} />
+        <StatCard label="Rented Out" value={summary.rentedOutVehicles} icon={<Key size={20} />} />
+        <StatCard label="Maintenance" value={summary.maintenanceVehicles} icon={<PenTool size={20} />} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-500">Total Vehicles</p>
-            <h3 className="text-3xl font-bold text-gray-800">{summary.totalVehicles}</h3>
-          </div>
-          <div className="p-3 bg-blue-50 rounded-lg text-blue-600">
-            <Car size={24} />
-          </div>
+      <Card>
+        <div style={{ padding: 20, borderBottom: '1px solid var(--border)' }}>
+          <h3 style={{ margin: 0, fontSize: 18 }}>Recent Activities</h3>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-500">Available</p>
-            <h3 className="text-3xl font-bold text-gray-800">{summary.availableVehicles}</h3>
-          </div>
-          <div className="p-3 bg-green-50 rounded-lg text-green-600">
-            <CheckCircle size={24} />
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-500">Rented Out</p>
-            <h3 className="text-3xl font-bold text-gray-800">{summary.rentedOutVehicles}</h3>
-          </div>
-          <div className="p-3 bg-amber-50 rounded-lg text-amber-600">
-            <Key size={24} />
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-500">Maintenance</p>
-            <h3 className="text-3xl font-bold text-gray-800">{summary.maintenanceVehicles}</h3>
-          </div>
-          <div className="p-3 bg-red-50 rounded-lg text-red-600">
-            <PenTool size={24} />
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-800">Recent Activities</h3>
-        </div>
-        <div className="p-6 space-y-6">
+        <div style={{ padding: 20 }} className="app-note-list">
           {activities.length === 0 ? (
-            <p className="text-sm text-gray-500">No recent backend activity available.</p>
+            <p className="app-muted" style={{ margin: 0 }}>No recent backend activity available.</p>
           ) : (
             activities.map((activity) => (
-              <div key={activity.id} className="flex gap-4">
-                <div className="mt-1">
-                  <div
-                    className={`p-2 rounded-full ${
-                      activity.type === 'vehicle'
-                        ? 'bg-blue-100 text-blue-600'
-                        : activity.type === 'alert'
-                          ? 'bg-red-100 text-red-600'
-                          : activity.type === 'success'
-                            ? 'bg-green-100 text-green-600'
-                            : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {activity.type === 'vehicle' && <Car size={16} />}
-                    {activity.type === 'alert' && <AlertTriangle size={16} />}
-                    {activity.type === 'success' && <CheckCircle size={16} />}
-                    {activity.type === 'default' && <PenTool size={16} />}
-                  </div>
-                </div>
+              <div key={activity.id} className="app-user-chip" style={{ alignItems: 'flex-start' }}>
+                <div className="app-avatar">{iconForType(activity.type)}</div>
                 <div>
-                  <p className="text-gray-800 font-medium">{activity.title}</p>
-                  <p className="text-sm text-gray-500">{activity.subtitle}</p>
+                  <p style={{ margin: 0, fontWeight: 600 }}>{activity.title}</p>
+                  <p className="app-muted" style={{ margin: '4px 0 0', fontSize: 13 }}>{activity.subtitle}</p>
                 </div>
               </div>
             ))
           )}
         </div>
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
-          <button className="text-sm font-medium text-blue-600 flex items-center hover:underline">
-            View All Activity <ArrowRight size={16} className="ml-1" />
-          </button>
+        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+          <Button variant="ghost" size="sm" type="button">
+            View All Activity <ArrowRight size={14} />
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

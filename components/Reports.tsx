@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Card, SectionHeader, StatCard } from './AppUI';
 import { getInspectionSummary, getInspectionTrends, type InspectionSummaryResponse, type InspectionTrendResponse } from '../services/api';
 
 const FALLBACK_SUMMARY: InspectionSummaryResponse = {
@@ -43,63 +44,51 @@ const Reports: React.FC = () => {
 
   const chartData = trends.map((item) => ({
     name: item.date,
-    usage: item.inspectionCount,
-    cost: item.defectCount,
+    inspections: item.inspectionCount,
+    defects: item.defectCount,
   }));
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800">Reports & Analytics</h2>
-        <p className="text-gray-500">Visual insights into fleet inspection and defect trends.</p>
-        {warning && <p className="text-xs text-amber-600 mt-1">{warning}</p>}
+    <div className="app-grid" style={{ gap: 24 }}>
+      <SectionHeader
+        title="Reports & Analytics"
+        description="Visual reporting for inspections, defects, and operational patterns."
+        warning={warning}
+      />
+
+      <div className="app-grid app-grid--stats">
+        <StatCard label="Total Inspections" value={summary.totalInspections} />
+        <StatCard label="Total Defects" value={summary.totalDefects} />
+        <StatCard label="Unresolved Defects" value={summary.unresolvedDefects} />
+        <StatCard label="Avg Defects / Inspection" value={summary.averageDefectsPerInspection?.toFixed(2)} />
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500">Total Inspections</p>
-          <p className="text-2xl font-bold text-gray-900">{summary.totalInspections}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500">Total Defects</p>
-          <p className="text-2xl font-bold text-gray-900">{summary.totalDefects}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500">Unresolved Defects</p>
-          <p className="text-2xl font-bold text-gray-900">{summary.unresolvedDefects}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500">Avg Defects / Inspection</p>
-          <p className="text-2xl font-bold text-gray-900">{summary.averageDefectsPerInspection?.toFixed(2)}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-80">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Inspection Trend</h3>
+      <div className="app-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+        <Card className="app-chart">
+          <h3 style={{ margin: '0 0 16px', fontSize: 18 }}>Inspection Trend</h3>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} />
-              <YAxis axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} />
               <Tooltip />
-              <Bar dataKey="usage" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="inspections" fill="#171717" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </Card>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-80">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Defect Trend</h3>
+        <Card className="app-chart">
+          <h3 style={{ margin: '0 0 16px', fontSize: 18 }}>Defect Trend</h3>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} />
-              <YAxis axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} />
               <Tooltip />
-              <Line type="monotone" dataKey="cost" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="defects" stroke="#52525b" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        </Card>
       </div>
     </div>
   );
