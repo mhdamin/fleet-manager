@@ -1,4 +1,14 @@
-export type ViewState = 'dashboard' | 'vehicles' | 'checklist' | 'audit' | 'reports' | 'users';
+export type ViewState =
+  | 'dashboard'
+  | 'bookings'
+  | 'rentals'
+  | 'returns'
+  | 'customers'
+  | 'vehicles'
+  | 'checklist'
+  | 'audit'
+  | 'reports'
+  | 'users';
 
 export interface Vehicle {
   id: string;
@@ -31,11 +41,98 @@ export interface LogEntry {
   status: 'Success' | 'Warning' | 'Critical';
 }
 
+export type BookingStatus = 'Draft' | 'Confirmed' | 'Assigned' | 'Cancelled' | 'Checked Out' | 'Completed';
+
+export type RentalStatus = 'Reserved' | 'Active' | 'Overdue' | 'Closed';
+
+export type ReturnOutcome = 'Clean Close' | 'Charges Applied' | 'Damage Review Required' | 'Maintenance Hold';
+
+export type VehicleOperationalStatus = 'available' | 'reserved' | 'rented' | 'maintenance' | 'inspection_hold';
+
+export interface Customer {
+  id: string;
+  customerNumber: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  licenseNumber: string;
+  licenseExpiry: string;
+  identityStatus: 'Verified' | 'Pending' | 'Flagged';
+  notes: string;
+  status: 'Active' | 'Watchlist' | 'Inactive';
+  createdAt: string;
+}
+
+export interface Booking {
+  id: string;
+  bookingNumber: string;
+  customerId: string;
+  customerName: string;
+  pickupLocation: string;
+  dropoffLocation: string;
+  pickupDateTime: string;
+  dropoffDateTime: string;
+  vehicleClass: string;
+  assignedVehicleId?: string;
+  assignedVehiclePlate?: string;
+  estimatedTotal: number;
+  depositAmount: number;
+  status: BookingStatus;
+  createdAt: string;
+  notes?: string;
+}
+
+export interface RentalContract {
+  id: string;
+  rentalNumber: string;
+  bookingId: string;
+  bookingNumber: string;
+  customerId: string;
+  customerName: string;
+  vehicleId: string;
+  vehiclePlate: string;
+  vehicleClass: string;
+  pickupDateTime: string;
+  expectedReturnDateTime: string;
+  actualReturnDateTime?: string;
+  odometerOut: number;
+  odometerIn?: number;
+  fuelOut: string;
+  fuelIn?: string;
+  depositAmount: number;
+  addOns: string[];
+  status: RentalStatus;
+  createdAt: string;
+  notes?: string;
+}
+
+export interface ReturnAssessment {
+  id: string;
+  returnNumber: string;
+  rentalId: string;
+  rentalNumber: string;
+  bookingNumber: string;
+  customerName: string;
+  vehiclePlate: string;
+  odometerIn: number;
+  fuelIn: string;
+  checklistId?: string;
+  damageFlag: boolean;
+  maintenanceFlag: boolean;
+  lateHours: number;
+  baseCharges: number;
+  extraCharges: number;
+  totalCharges: number;
+  outcome: ReturnOutcome;
+  submittedAt: string;
+  notes?: string;
+}
+
 // Checklist Data Structure
 export interface InspectionPoint {
   id: number;
   x: number;
-  y: number; // Percentage positions
+  y: number;
   label: string;
   status?: 'Normal' | 'Abnormal' | 'N/A' | 'Not Inspected';
   notes?: string;
@@ -47,7 +144,7 @@ export interface ChecklistData {
   makeModel: string;
   odometer: string;
   fuelLevel: string;
-  type: string; // 'pickup', 'return', etc.
+  type: string;
   exteriorPoints: InspectionPoint[];
   interior: {
     dashboard: string;
