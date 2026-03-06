@@ -237,7 +237,7 @@ const App: React.FC = () => {
           <div className="app-user-chip">
             <Car size={22} />
             <div>
-              <div style={{ fontWeight: 700 }}>FleetGuard</div>
+              <div className="app-topbar__brand">FleetGuard</div>
               <div className="app-kicker">Manager Console</div>
             </div>
           </div>
@@ -292,11 +292,11 @@ const App: React.FC = () => {
             <div className="app-topbar__crumb">
               Rental Fleet Manager / <strong>{viewLabels[currentView]}</strong>
             </div>
-            <div style={{ fontWeight: 700 }}>FleetGuard</div>
+            <div className="app-topbar__brand">FleetGuard</div>
           </div>
 
           <div className="app-topbar__actions">
-            <div className="app-search">
+            <div className="app-search app-topbar__search">
               <Search size={16} />
               <TextInput placeholder="Search..." style={{ width: 240 }} />
             </div>
@@ -387,3 +387,5 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+

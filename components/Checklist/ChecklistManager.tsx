@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertOctagon,
   ArrowLeft,
@@ -6,7 +6,10 @@ import {
   Camera,
   Car,
   CheckCircle,
+  ChevronLeft,
+  ChevronRight,
   ClipboardCheck,
+  History,
   PenTool,
   Shield,
 } from 'lucide-react';
@@ -14,16 +17,39 @@ import { Button, Card, FormField, ModalShell, SectionHeader, SelectInput, Status
 import { apiPost, getChecklists, type ChecklistResponse } from '../../services/api';
 import { ChecklistData, InspectionPoint } from '../../types';
 
-const INITIAL_POINTS: InspectionPoint[] = [
-  { id: 1, x: 50, y: 35, label: '1', status: 'Normal' },
-  { id: 3, x: 50, y: 50, label: '3', status: 'Normal' },
-  { id: 32, x: 50, y: 65, label: '32', status: 'Normal' },
-  { id: 17, x: 32, y: 45, label: '17', status: 'Normal' },
-  { id: 18, x: 68, y: 45, label: '18', status: 'Normal' },
-  { id: 51, x: 28, y: 55, label: '51', status: 'Abnormal' },
-  { id: 28, x: 72, y: 55, label: '28', status: 'Abnormal' },
-  { id: 5, x: 50, y: 15, label: '5', status: 'Normal' },
-  { id: 44, x: 50, y: 85, label: '44', status: 'Normal' },
+type InspectionStatus = NonNullable<InspectionPoint['status']>;
+
+type ExteriorInspectionPointMeta = {
+  id: number;
+  displayNumber: string;
+  name: string;
+  positionLabel: string;
+  x: number;
+  y: number;
+  status: InspectionStatus;
+};
+
+const EXTERIOR_POINT_METAS: ExteriorInspectionPointMeta[] = [
+  { id: 101, displayNumber: '64', name: 'Left Front Fender - Upper Arch', positionLabel: 'Vehicle Left Side / Front Fender Upper', x: 18, y: 27, status: 'Abnormal' },
+  { id: 102, displayNumber: '17', name: 'Left Front Door - Upper Panel', positionLabel: 'Vehicle Left Side / Front Door Upper', x: 26, y: 44, status: 'Normal' },
+  { id: 103, displayNumber: '51', name: 'Left Front Quarter Panel', positionLabel: 'Vehicle Left Side / Front Quarter Outer', x: 7, y: 53, status: 'Abnormal' },
+  { id: 104, displayNumber: '17', name: 'Left Center Sill Panel', positionLabel: 'Vehicle Left Side / Center Sill', x: 34, y: 42, status: 'Normal' },
+  { id: 105, displayNumber: '43', name: 'Left Rear Quarter - Lower Panel', positionLabel: 'Vehicle Left Side / Rear Quarter Lower', x: 21, y: 76, status: 'Abnormal' },
+  { id: 106, displayNumber: '5', name: 'Front Grille Panel', positionLabel: 'Vehicle Front / Grille Center', x: 51, y: 7.8, status: 'Normal' },
+  { id: 107, displayNumber: '9', name: 'Front Bumper - Upper Center', positionLabel: 'Vehicle Front / Bumper Upper Center', x: 51, y: 13.3, status: 'Normal' },
+  { id: 108, displayNumber: '1', name: 'Roof Center Panel', positionLabel: 'Vehicle Centerline / Roof Panel', x: 51, y: 28, status: 'Normal' },
+  { id: 109, displayNumber: '3', name: 'Windshield Lower Cowl', positionLabel: 'Vehicle Centerline / Windshield Lower', x: 51, y: 40, status: 'Normal' },
+  { id: 110, displayNumber: '1', name: 'Dashboard Inspection Zone', positionLabel: 'Vehicle Interior / Dashboard Front Center', x: 51, y: 55.5, status: 'Normal' },
+  { id: 111, displayNumber: '32', name: 'Rear Cabin Floor / Trunk Forward Panel', positionLabel: 'Vehicle Centerline / Rear Cabin Lower', x: 48.5, y: 70.5, status: 'Normal' },
+  { id: 112, displayNumber: '62', name: 'Rear Bumper - Upper Center', positionLabel: 'Vehicle Rear / Bumper Upper Center', x: 51, y: 91.5, status: 'Normal' },
+  { id: 113, displayNumber: '44', name: 'Rear Bumper - Lower Center', positionLabel: 'Vehicle Rear / Bumper Lower Center', x: 51, y: 104.5, status: 'Normal' },
+  { id: 114, displayNumber: '17', name: 'Right Front Fender - Upper Arch', positionLabel: 'Vehicle Right Side / Front Fender Upper', x: 85.5, y: 27, status: 'Abnormal' },
+  { id: 115, displayNumber: '18', name: 'Right Front Door - Upper Panel', positionLabel: 'Vehicle Right Side / Front Door Upper', x: 77.5, y: 38, status: 'Abnormal' },
+  { id: 116, displayNumber: '18', name: 'Right Front Door - Front Edge', positionLabel: 'Vehicle Right Side / Front Door Leading Edge', x: 70.5, y: 42, status: 'Normal' },
+  { id: 117, displayNumber: '28', name: 'Right Rear Door - Mid Panel', positionLabel: 'Vehicle Right Side / Rear Door Mid Panel', x: 77, y: 53, status: 'Abnormal' },
+  { id: 118, displayNumber: '28', name: 'Right Rear Quarter - Center Panel', positionLabel: 'Vehicle Right Side / Rear Quarter Center', x: 90.5, y: 53, status: 'Abnormal' },
+  { id: 119, displayNumber: '28', name: 'Right Center Sill Panel', positionLabel: 'Vehicle Right Side / Center Sill', x: 69, y: 58.5, status: 'Abnormal' },
+  { id: 120, displayNumber: '30', name: 'Right Rear Quarter - Lower Panel', positionLabel: 'Vehicle Right Side / Rear Quarter Lower', x: 76.5, y: 73.5, status: 'Abnormal' },
 ];
 
 const INITIAL_DATA: ChecklistData = {
@@ -33,7 +59,7 @@ const INITIAL_DATA: ChecklistData = {
   odometer: '',
   fuelLevel: 'Full',
   type: '',
-  exteriorPoints: INITIAL_POINTS,
+  exteriorPoints: EXTERIOR_POINT_METAS.map(({ id, displayNumber, x, y, status }) => ({ id, x, y, label: displayNumber, status, notes: '' })),
   interior: {
     dashboard: '',
     seats: '',
@@ -55,7 +81,7 @@ const steps = [
   { id: 2, name: 'Checklist Type' },
   { id: 3, name: 'Exterior' },
   { id: 4, name: 'Interior' },
-  { id: 5, name: 'Tyres' },
+  { id: 5, name: 'Tyre' },
   { id: 6, name: 'Signature' },
   { id: 7, name: 'Summary' },
 ];
@@ -67,24 +93,23 @@ const checklistTypes = [
   { id: 'damage', title: 'Damage Assessment', desc: 'Detailed inspection for incident or damage reporting.', icon: AlertOctagon },
 ];
 
-const pointTone = (status?: InspectionPoint['status']): 'success' | 'danger' | 'neutral' => {
-  if (status === 'Abnormal') {
-    return 'danger';
-  }
-  if (status === 'Normal') {
-    return 'success';
-  }
+const pointTone = (status?: InspectionStatus): 'success' | 'danger' | 'neutral' => {
+  if (status === 'Abnormal') return 'danger';
+  if (status === 'Normal') return 'success';
   return 'neutral';
 };
 
 const ChecklistManager: React.FC = () => {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<ChecklistData>(INITIAL_DATA);
-  const [modalPoint, setModalPoint] = useState<InspectionPoint | null>(null);
+  const [modalPointId, setModalPointId] = useState<number | null>(null);
   const [recentChecklists, setRecentChecklists] = useState<ChecklistResponse[]>([]);
   const [warning, setWarning] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerSigned, setCustomerSigned] = useState(false);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const stepsRailRef = useRef<HTMLDivElement | null>(null);
+  const activeStepRef = useRef<HTMLDivElement | null>(null);
 
   const updateField = <K extends keyof ChecklistData>(field: K, value: ChecklistData[K]) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -105,7 +130,7 @@ const ChecklistManager: React.FC = () => {
       ...prev,
       exteriorPoints: prev.exteriorPoints.map((point) => (point.id === updatedPoint.id ? updatedPoint : point)),
     }));
-    setModalPoint(null);
+    setModalPointId(null);
   };
 
   useEffect(() => {
@@ -130,6 +155,14 @@ const ChecklistManager: React.FC = () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!activeStepRef.current || !stepsRailRef.current) {
+      return;
+    }
+
+    activeStepRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }, [step]);
 
   const handleCompleteCheckout = async () => {
     if (!data.vehicleId.trim()) {
@@ -160,66 +193,86 @@ const ChecklistManager: React.FC = () => {
 
   const completedExterior = data.exteriorPoints.filter((point) => point.status === 'Normal').length;
   const abnormalExterior = data.exteriorPoints.filter((point) => point.status === 'Abnormal').length;
+  const latestChecklist = recentChecklists[0];
+  const pointMetaById = useMemo(() => Object.fromEntries(EXTERIOR_POINT_METAS.map((meta) => [meta.id, meta])) as Record<number, ExteriorInspectionPointMeta>, []);
+  const currentModalPoint = modalPointId ? data.exteriorPoints.find((point) => point.id === modalPointId) || null : null;
 
   return (
     <div className="app-grid" style={{ gap: 24 }}>
-      <SectionHeader
-        title="Checklist Management"
-        description="Run a consistent inspection workflow for pickup, return, and maintenance checks."
-        warning={warning}
-      />
+      <SectionHeader title="Checklist Management" description="Run a consistent inspection workflow for pickup, return, and maintenance checks." warning={warning} />
 
-      <Card style={{ padding: 16 }}>
-        <div className="app-checklist-steps">
-          {steps.map((item, index) => (
-            <React.Fragment key={item.id}>
-              <div className="app-step">
-                <div
-                  className={cx(
-                    'app-step__marker',
-                    step === item.id && 'app-step__marker--active',
-                    step > item.id && 'app-step__marker--done'
-                  )}
-                >
-                  {step > item.id ? <CheckCircle size={14} /> : item.id}
-                </div>
-                <span className={step === item.id ? '' : 'app-muted'} style={{ fontWeight: 600, fontSize: 14 }}>{item.name}</span>
-              </div>
-              {index < steps.length - 1 ? <div className={cx('app-step__line', step > item.id && 'app-step__line--done')} /> : null}
-            </React.Fragment>
-          ))}
+      <Card style={{ padding: 12 }}>
+        <div className="app-steps-shell">
+          <button type="button" className="app-steps-shell__scroll" aria-label="Scroll steps left" onClick={() => stepsRailRef.current?.scrollBy({ left: -180, behavior: 'smooth' })}>
+            <ChevronLeft size={16} />
+          </button>
+          <div className="app-checklist-steps" ref={stepsRailRef}>
+            {steps.map((item, index) => {
+              const isActive = step === item.id;
+              const isDone = step > item.id;
+              return (
+                <React.Fragment key={item.id}>
+                  <div className="app-step" ref={isActive ? activeStepRef : null}>
+                    <div className={cx('app-step__marker', isActive && 'app-step__marker--active', isDone && 'app-step__marker--done')}>
+                      {isDone ? <CheckCircle size={14} /> : item.id}
+                    </div>
+                    <span className={isActive ? '' : 'app-muted'} style={{ fontWeight: 600, fontSize: 14 }}>{item.name}</span>
+                  </div>
+                  {index < steps.length - 1 ? <div className={cx('app-step__line', isDone && 'app-step__line--done')} /> : null}
+                </React.Fragment>
+              );
+            })}
+          </div>
+          <button type="button" className="app-steps-shell__scroll" aria-label="Scroll steps right" onClick={() => stepsRailRef.current?.scrollBy({ left: 180, behavior: 'smooth' })}>
+            <ChevronRight size={16} />
+          </button>
         </div>
       </Card>
 
-      <Card style={{ padding: 24, minHeight: 540 }}>{renderStepContent({ step, data, updateField, updateInterior, setModalPoint, setCustomerSigned, customerSigned })}</Card>
+      <div className="app-checklist-layout">
+        <Card className="app-checklist-main-card" style={{ padding: 24, minHeight: 540 }}>
+          {renderStepContent({ step, data, updateField, updateInterior, setModalPointId, setCustomerSigned, customerSigned, pointMetaById })}
+        </Card>
 
-      <Card style={{ padding: 20 }}>
-        <div className="app-split" style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 18 }}>Recent Checklists</h3>
-            <p className="app-section-description" style={{ marginTop: 6 }}>Latest records fetched from the backend.</p>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <StatusBadge tone="success">{completedExterior} normal points</StatusBadge>
-            <StatusBadge tone={abnormalExterior > 0 ? 'warning' : 'neutral'}>{abnormalExterior} abnormal points</StatusBadge>
-          </div>
-        </div>
-        <div className="app-note-list" style={{ marginTop: 16 }}>
-          {recentChecklists.length === 0 ? (
-            <p className="app-muted" style={{ margin: 0 }}>No checklist records found.</p>
-          ) : (
-            recentChecklists.map((item) => (
-              <div key={item.id} className="app-note-row">
-                <div>
-                  <div style={{ fontWeight: 600 }}>{item.checklistNumber}</div>
-                  <div className="app-muted" style={{ fontSize: 13 }}>{item.staffName || 'Inspector'} | {item.rentalType}</div>
+        <aside className={cx('app-checklist-history', historyExpanded && 'app-checklist-history--expanded')}>
+          <Card className="app-checklist-history__card">
+            <button type="button" className="app-checklist-history__summary" onClick={() => setHistoryExpanded((current) => !current)}>
+              <div className="app-user-chip" style={{ alignItems: 'center' }}>
+                <div className="app-avatar"><History size={16} /></div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontWeight: 600 }}>Recent Checklists</div>
+                  <div className="app-muted" style={{ fontSize: 12 }}>
+                    {recentChecklists.length} items{latestChecklist ? ` · Latest ${latestChecklist.checklistNumber}` : ''}
+                  </div>
                 </div>
-                <div className="app-muted">{item.vehicle?.plateNumber || '-'}</div>
               </div>
-            ))
-          )}
-        </div>
-      </Card>
+              <StatusBadge tone={historyExpanded ? 'inverse' : 'neutral'}>{historyExpanded ? 'Hide' : 'Show'}</StatusBadge>
+            </button>
+
+            <div className={cx('app-checklist-history__body', historyExpanded && 'app-checklist-history__body--visible')}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+                <StatusBadge tone="success">{completedExterior} normal points</StatusBadge>
+                <StatusBadge tone={abnormalExterior > 0 ? 'warning' : 'neutral'}>{abnormalExterior} abnormal points</StatusBadge>
+              </div>
+              <div className="app-note-list">
+                {recentChecklists.length === 0 ? (
+                  <p className="app-muted" style={{ margin: 0 }}>No checklist records found.</p>
+                ) : (
+                  recentChecklists.map((item) => (
+                    <div key={item.id} className="app-note-row">
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{item.checklistNumber}</div>
+                        <div className="app-muted" style={{ fontSize: 13 }}>{item.staffName || 'Inspector'} | {item.rentalType}</div>
+                      </div>
+                      <div className="app-muted">{item.vehicle?.plateNumber || '-'}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </Card>
+        </aside>
+      </div>
 
       <div className="app-split" style={{ flexWrap: 'wrap' }}>
         <Button type="button" variant="secondary" onClick={() => setStep((current) => Math.max(1, current - 1))} disabled={step === 1}>
@@ -236,7 +289,7 @@ const ChecklistManager: React.FC = () => {
         )}
       </div>
 
-      {modalPoint ? <PointModal point={modalPoint} onClose={() => setModalPoint(null)} onSave={savePointData} /> : null}
+      {currentModalPoint ? <PointModal point={currentModalPoint} meta={pointMetaById[currentModalPoint.id]} onClose={() => setModalPointId(null)} onSave={savePointData} /> : null}
     </div>
   );
 };
@@ -246,75 +299,45 @@ type StepRendererProps = {
   data: ChecklistData;
   updateField: <K extends keyof ChecklistData>(field: K, value: ChecklistData[K]) => void;
   updateInterior: (key: keyof ChecklistData['interior'], value: string) => void;
-  setModalPoint: React.Dispatch<React.SetStateAction<InspectionPoint | null>>;
+  setModalPointId: React.Dispatch<React.SetStateAction<number | null>>;
   setCustomerSigned: React.Dispatch<React.SetStateAction<boolean>>;
   customerSigned: boolean;
+  pointMetaById: Record<number, ExteriorInspectionPointMeta>;
 };
 
-const renderStepContent = ({
-  step,
-  data,
-  updateField,
-  updateInterior,
-  setModalPoint,
-  setCustomerSigned,
-  customerSigned,
-}: StepRendererProps) => {
+const renderStepContent = ({ step, data, updateField, updateInterior, setModalPointId, setCustomerSigned, customerSigned, pointMetaById }: StepRendererProps) => {
   switch (step) {
     case 1:
       return <StepInfo data={data} onChange={updateField} />;
     case 2:
       return <StepType selected={data.type} onSelect={(value) => updateField('type', value)} />;
     case 3:
-      return <StepExterior points={data.exteriorPoints} onPointClick={setModalPoint} />;
+      return <StepExterior points={data.exteriorPoints} pointMetaById={pointMetaById} onPointClick={(point) => setModalPointId(point.id)} />;
     case 4:
       return <StepInterior data={data} onChange={updateInterior} />;
     case 5:
       return <StepTyres />;
     case 6:
-      return (
-        <StepSignature
-          data={data}
-          onChange={updateField}
-          signed={customerSigned}
-          onToggleSigned={setCustomerSigned}
-        />
-      );
+      return <StepSignature data={data} onChange={updateField} signed={customerSigned} onToggleSigned={setCustomerSigned} />;
     case 7:
-      return <StepSummary data={data} signed={customerSigned} />;
+      return <StepSummary data={data} signed={customerSigned} pointMetaById={pointMetaById} />;
     default:
       return null;
   }
 };
 
-const StepInfo = ({
-  data,
-  onChange,
-}: {
-  data: ChecklistData;
-  onChange: <K extends keyof ChecklistData>(field: K, value: ChecklistData[K]) => void;
-}) => (
+const StepInfo = ({ data, onChange }: { data: ChecklistData; onChange: <K extends keyof ChecklistData>(field: K, value: ChecklistData[K]) => void; }) => (
   <div className="app-grid" style={{ gap: 24 }}>
     <div>
       <h3 style={{ margin: 0, fontSize: 22 }}>Vehicle Information</h3>
       <p className="app-section-description" style={{ marginTop: 8 }}>Capture the core reference details before starting the inspection.</p>
     </div>
     <div className="app-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-      <FormField label="Vehicle ID">
-        <TextInput value={data.vehicleId} onChange={(e) => onChange('vehicleId', e.target.value)} placeholder="Enter vehicle ID" />
-      </FormField>
-      <FormField label="License Plate">
-        <TextInput value={data.plate} onChange={(e) => onChange('plate', e.target.value)} placeholder="Enter license plate" />
-      </FormField>
-      <FormField label="Make & Model">
-        <TextInput value={data.makeModel} onChange={(e) => onChange('makeModel', e.target.value)} placeholder="Toyota Camry" />
-      </FormField>
-      <FormField label="Current Odometer (km)">
-        <TextInput value={data.odometer} onChange={(e) => onChange('odometer', e.target.value)} placeholder="45000" />
-      </FormField>
-      <FormField label="Check-out Date">
-        <TextInput type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
-      </FormField>
+      <FormField label="Vehicle ID"><TextInput value={data.vehicleId} onChange={(e) => onChange('vehicleId', e.target.value)} placeholder="Enter vehicle ID" /></FormField>
+      <FormField label="License Plate"><TextInput value={data.plate} onChange={(e) => onChange('plate', e.target.value)} placeholder="Enter license plate" /></FormField>
+      <FormField label="Make & Model"><TextInput value={data.makeModel} onChange={(e) => onChange('makeModel', e.target.value)} placeholder="Toyota Camry" /></FormField>
+      <FormField label="Current Odometer (km)"><TextInput value={data.odometer} onChange={(e) => onChange('odometer', e.target.value)} placeholder="45000" /></FormField>
+      <FormField label="Check-out Date"><TextInput type="date" defaultValue={new Date().toISOString().slice(0, 10)} /></FormField>
       <FormField label="Fuel Level">
         <SelectInput value={data.fuelLevel} onChange={(e) => onChange('fuelLevel', e.target.value)}>
           <option>Full</option>
@@ -325,9 +348,7 @@ const StepInfo = ({
         </SelectInput>
       </FormField>
       <div style={{ gridColumn: '1 / -1' }}>
-        <FormField label="Customer Details">
-          <TextArea placeholder="Enter name, contact information, and rental notes..." />
-        </FormField>
+        <FormField label="Customer Details"><TextArea placeholder="Enter name, contact information, and rental notes..." /></FormField>
       </div>
     </div>
   </div>
@@ -342,91 +363,88 @@ const StepType = ({ selected, onSelect }: { selected: string; onSelect: (value: 
     {checklistTypes.map((item) => {
       const Icon = item.icon;
       return (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => onSelect(item.id)}
-          className={cx('app-radio-card', selected === item.id && 'app-radio-card--selected')}
-        >
+        <button key={item.id} type="button" onClick={() => onSelect(item.id)} className={cx('app-radio-card', selected === item.id && 'app-radio-card--selected')}>
           <div className="app-avatar"><Icon size={18} /></div>
           <div style={{ textAlign: 'left' }}>
             <div style={{ fontWeight: 600 }}>{item.title}</div>
             <div className="app-muted" style={{ fontSize: 13, marginTop: 4 }}>{item.desc}</div>
           </div>
-          <div style={{ marginLeft: 'auto' }}>
-            <StatusBadge tone={selected === item.id ? 'inverse' : 'neutral'}>{selected === item.id ? 'Selected' : 'Select'}</StatusBadge>
-          </div>
+          <div style={{ marginLeft: 'auto' }}><StatusBadge tone={selected === item.id ? 'inverse' : 'neutral'}>{selected === item.id ? 'Selected' : 'Select'}</StatusBadge></div>
         </button>
       );
     })}
   </div>
 );
 
-const StepExterior = ({ points, onPointClick }: { points: InspectionPoint[]; onPointClick: (point: InspectionPoint) => void }) => (
+const StepExterior = ({ points, pointMetaById, onPointClick }: { points: InspectionPoint[]; pointMetaById: Record<number, ExteriorInspectionPointMeta>; onPointClick: (point: InspectionPoint) => void; }) => (
   <div className="app-grid" style={{ gap: 24 }}>
     <div>
       <h3 style={{ margin: 0, fontSize: 22 }}>Exterior Inspection</h3>
-      <p className="app-section-description" style={{ marginTop: 8 }}>Tap each inspection point to record its condition and notes.</p>
+      <p className="app-section-description" style={{ marginTop: 8 }}>Inspect each numbered exterior zone and record its condition.</p>
     </div>
-    <div className="app-grid" style={{ gridTemplateColumns: 'minmax(280px, 360px) minmax(260px, 1fr)', alignItems: 'start' }}>
-      <div style={{ margin: '0 auto', position: 'relative', width: 320, height: 500 }} className="app-surface-muted">
-        <div style={{ position: 'absolute', inset: 24 }}>
-          <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 160, height: 32, border: '1px solid var(--border-strong)', borderRadius: 16, background: '#fff' }} />
-          <div style={{ position: 'absolute', top: 38, left: '50%', transform: 'translateX(-50%)', width: 190, height: 110, border: '1px solid var(--border-strong)', borderRadius: 24, background: '#fff' }} />
-          <div style={{ position: 'absolute', top: 160, left: '50%', transform: 'translateX(-50%)', width: 170, height: 150, border: '1px solid var(--border-strong)', borderRadius: 22, background: '#fff' }} />
-          <div style={{ position: 'absolute', top: 320, left: '50%', transform: 'translateX(-50%)', width: 190, height: 96, border: '1px solid var(--border-strong)', borderRadius: 24, background: '#fff' }} />
-          <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: 160, height: 32, border: '1px solid var(--border-strong)', borderRadius: 16, background: '#fff' }} />
-          <div style={{ position: 'absolute', top: 100, left: 0, width: 28, height: 240, border: '1px solid var(--border-strong)', borderRadius: 18, background: '#fff' }} />
-          <div style={{ position: 'absolute', top: 100, right: 0, width: 28, height: 240, border: '1px solid var(--border-strong)', borderRadius: 18, background: '#fff' }} />
-          {points.map((point) => (
-            <button
-              key={point.id}
-              type="button"
-              onClick={() => onPointClick(point)}
-              style={{
-                position: 'absolute',
-                top: `${point.y}%`,
-                left: `${point.x}%`,
-                transform: 'translate(-50%, -50%)',
-                width: 34,
-                height: 34,
-              }}
-            >
-              <StatusBadge tone={pointTone(point.status)} className="!justify-center">{point.id}</StatusBadge>
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="app-grid" style={{ gap: 12 }}>
-        {points.map((point) => (
-          <div key={point.id} className="app-note-row" style={{ paddingBottom: 10 }}>
-            <div>
-              <div style={{ fontWeight: 600 }}>Inspection Point #{point.id}</div>
-              <div className="app-muted" style={{ fontSize: 13 }}>{point.notes || 'No notes recorded yet.'}</div>
-            </div>
-            <StatusBadge tone={pointTone(point.status)}>{point.status || 'Not set'}</StatusBadge>
-          </div>
-        ))}
+    <div className="app-exterior-stage">
+      <div className="app-exterior-stage__canvas">
+        <svg viewBox="0 0 520 920" className="app-exterior-vehicle" aria-label="Top view vehicle inspection diagram">
+          <defs>
+            <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="0" dy="8" stdDeviation="18" floodColor="#171717" floodOpacity="0.08" /></filter>
+          </defs>
+          <g filter="url(#softShadow)">
+            <rect x="155" y="20" width="210" height="90" rx="18" fill="#ffffff" stroke="#171717" strokeWidth="4" />
+            <circle cx="172" cy="64" r="15" fill="#fbbf24" stroke="#171717" strokeWidth="4" />
+            <circle cx="172" cy="86" r="12" fill="#ef4444" stroke="#171717" strokeWidth="4" />
+            <circle cx="348" cy="64" r="15" fill="#fbbf24" stroke="#171717" strokeWidth="4" />
+            <circle cx="348" cy="86" r="12" fill="#ef4444" stroke="#171717" strokeWidth="4" />
+            <rect x="201" y="45" width="118" height="40" fill="#c7e9c0" stroke="#171717" strokeWidth="4" />
+            <path d="M210 110 H310 C327 110 340 122 340 138 V150 H180 V138 C180 122 193 110 210 110 Z" fill="#f7f7f7" stroke="#171717" strokeWidth="4" />
+            <circle cx="360" cy="132" r="8" fill="#fff" stroke="#171717" strokeWidth="4" />
+            <path d="M215 170 C180 185 168 235 165 290 L160 655 C159 700 180 742 218 786 L238 804 C248 814 266 814 276 804 L304 780 C343 744 361 702 360 654 L354 290 C351 235 340 185 305 170 Z" fill="#ffffff" stroke="#171717" strokeWidth="4" />
+            <path d="M220 360 C252 342 269 338 300 340 L327 346 L310 430 L210 430 L193 346 Z" fill="#c7e9c0" stroke="#171717" strokeWidth="4" />
+            <rect x="222" y="470" width="76" height="118" rx="18" fill="#f8f8f8" stroke="#171717" strokeWidth="4" />
+            <path d="M210 640 L308 640 L296 740 C280 748 244 748 224 740 Z" fill="#c7e9c0" stroke="#171717" strokeWidth="4" />
+            <path d="M192 232 H328" stroke="#171717" strokeWidth="4" strokeLinecap="round" />
+            <path d="M102 178 C130 178 144 194 144 228 V742 C144 778 132 796 112 796 H98 C88 796 82 786 82 772 V714 C82 700 86 690 95 681 L120 656 V314 L95 288 C86 279 82 269 82 255 V202 C82 188 88 178 102 178 Z" fill="#f8f8f8" stroke="#171717" strokeWidth="4" />
+            <path d="M418 178 C390 178 376 194 376 228 V742 C376 778 388 796 408 796 H422 C432 796 438 786 438 772 V714 C438 700 434 690 425 681 L400 656 V314 L425 288 C434 279 438 269 438 255 V202 C438 188 432 178 418 178 Z" fill="#f8f8f8" stroke="#171717" strokeWidth="4" />
+            <path d="M144 392 L120 392 V540 L144 540" stroke="#171717" strokeWidth="4" fill="none" />
+            <path d="M376 392 L400 392 V540 L376 540" stroke="#171717" strokeWidth="4" fill="none" />
+            <path d="M144 436 L190 440 L190 494 L144 490" fill="#c7e9c0" stroke="#171717" strokeWidth="4" />
+            <path d="M376 436 L330 440 L330 494 L376 490" fill="#c7e9c0" stroke="#171717" strokeWidth="4" />
+            <path d="M144 520 L185 524 L185 618 L144 690" fill="#ffffff" stroke="#171717" strokeWidth="4" />
+            <path d="M376 520 L335 524 L335 618 L376 690" fill="#ffffff" stroke="#171717" strokeWidth="4" />
+            <path d="M144 314 L190 318 L190 426 L144 426" fill="#ffffff" stroke="#171717" strokeWidth="4" />
+            <path d="M376 314 L330 318 L330 426 L376 426" fill="#ffffff" stroke="#171717" strokeWidth="4" />
+            <circle cx="60" cy="272" r="42" fill="#f8f8f8" stroke="#171717" strokeWidth="4" /><circle cx="60" cy="272" r="24" fill="#d1d5db" stroke="#171717" strokeWidth="4" />
+            <circle cx="60" cy="632" r="42" fill="#f8f8f8" stroke="#171717" strokeWidth="4" /><circle cx="60" cy="632" r="24" fill="#d1d5db" stroke="#171717" strokeWidth="4" />
+            <circle cx="460" cy="272" r="42" fill="#f8f8f8" stroke="#171717" strokeWidth="4" /><circle cx="460" cy="272" r="24" fill="#d1d5db" stroke="#171717" strokeWidth="4" />
+            <circle cx="460" cy="632" r="42" fill="#f8f8f8" stroke="#171717" strokeWidth="4" /><circle cx="460" cy="632" r="24" fill="#d1d5db" stroke="#171717" strokeWidth="4" />
+            <rect x="190" y="808" width="140" height="22" fill="#f7f7f7" stroke="#171717" strokeWidth="4" />
+            <g>
+              <rect x="165" y="852" width="190" height="54" rx="10" fill="#f1f1f1" stroke="#171717" strokeWidth="4" />
+              <rect x="168" y="840" width="40" height="22" rx="4" fill="#ef4444" stroke="#171717" strokeWidth="4" />
+              <rect x="208" y="840" width="42" height="22" rx="4" fill="#fbbf24" stroke="#171717" strokeWidth="4" />
+              <rect x="270" y="840" width="42" height="22" rx="4" fill="#fbbf24" stroke="#171717" strokeWidth="4" />
+              <rect x="312" y="840" width="40" height="22" rx="4" fill="#ef4444" stroke="#171717" strokeWidth="4" />
+              <rect x="236" y="857" width="48" height="18" fill="#ffffff" stroke="#171717" strokeWidth="4" />
+              <rect x="185" y="904" width="30" height="46" rx="8" fill="#d1d5db" stroke="#171717" strokeWidth="4" />
+              <rect x="305" y="904" width="30" height="46" rx="8" fill="#d1d5db" stroke="#171717" strokeWidth="4" />
+            </g>
+          </g>
+        </svg>
+        {points.map((point) => {
+          const meta = pointMetaById[point.id];
+          return <button key={point.id} type="button" className={cx('app-exterior-point', `app-exterior-point--${pointTone(point.status)}`)} style={{ left: `${meta.x}%`, top: `${meta.y}%` }} onClick={() => onPointClick(point)} aria-label={`${meta.name} (${meta.displayNumber})`} title={meta.name}>{meta.displayNumber}</button>;
+        })}
       </div>
     </div>
   </div>
 );
 
-const PointModal = ({
-  point,
-  onClose,
-  onSave,
-}: {
-  point: InspectionPoint;
-  onClose: () => void;
-  onSave: (point: InspectionPoint) => void;
-}) => {
-  const [status, setStatus] = useState<InspectionPoint['status']>(point.status || 'Normal');
+const PointModal = ({ point, meta, onClose, onSave }: { point: InspectionPoint; meta: ExteriorInspectionPointMeta; onClose: () => void; onSave: (point: InspectionPoint) => void; }) => {
+  const [status, setStatus] = useState<InspectionStatus>(point.status || 'Normal');
   const [notes, setNotes] = useState(point.notes || '');
 
   return (
     <ModalShell
-      title={`Inspection Point #${point.id}`}
+      title={meta.name}
       onClose={onClose}
       footer={
         <>
@@ -436,29 +454,25 @@ const PointModal = ({
       }
     >
       <div className="app-grid" style={{ gap: 16 }}>
+        <FormField label="Position"><TextInput value={meta.positionLabel} readOnly /></FormField>
         <div>
           <div className="app-label" style={{ marginBottom: 10 }}>Condition Status</div>
-          <div className="app-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-            {(['Normal', 'Abnormal', 'N/A', 'Not Inspected'] as Array<InspectionPoint['status']>).map((option) => (
-              <button
-                key={option}
-                type="button"
-                className={cx('app-radio-card', status === option && 'app-radio-card--selected')}
-                onClick={() => setStatus(option)}
-              >
-                <StatusBadge tone={pointTone(option)}>{option}</StatusBadge>
+          <div className="app-modal-status-grid">
+            {(['Normal', 'Abnormal', 'N/A', 'Not Inspected'] as InspectionStatus[]).map((option) => (
+              <button key={option} type="button" className={cx('app-modal-status-card', status === option && 'app-modal-status-card--active')} onClick={() => setStatus(option)}>
+                <span className="app-modal-status-card__dot" />
+                <span>{option}</span>
               </button>
             ))}
           </div>
         </div>
-        <FormField label="Notes">
-          <TextArea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add detailed inspection notes..." />
-        </FormField>
+        <FormField label="Notes"><TextArea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add detailed inspection notes..." /></FormField>
         <div>
           <div className="app-label" style={{ marginBottom: 10 }}>Photos</div>
-          <div className="app-signature" style={{ minHeight: 120, flexDirection: 'column', gap: 8 }}>
+          <div className="app-photo-dropzone">
             <Camera size={20} />
             <span className="app-muted" style={{ fontSize: 13 }}>Drag photos here or click to browse</span>
+            <Button type="button" variant="secondary" size="sm">Add Photo</Button>
           </div>
         </div>
       </div>
@@ -466,13 +480,7 @@ const PointModal = ({
   );
 };
 
-const StepInterior = ({
-  data,
-  onChange,
-}: {
-  data: ChecklistData;
-  onChange: (key: keyof ChecklistData['interior'], value: string) => void;
-}) => {
+const StepInterior = ({ data, onChange }: { data: ChecklistData; onChange: (key: keyof ChecklistData['interior'], value: string) => void; }) => {
   const sections: Array<{ key: keyof ChecklistData['interior']; label: string }> = [
     { key: 'dashboard', label: 'Dashboard & Controls' },
     { key: 'seats', label: 'Seats & Upholstery' },
@@ -494,9 +502,7 @@ const StepInterior = ({
             <div style={{ fontWeight: 600 }}>{section.label}</div>
             <Button variant="ghost" size="sm" type="button"><Camera size={14} /> Photo</Button>
           </div>
-          <FormField label="Inspection notes">
-            <TextInput value={data.interior[section.key]} onChange={(e) => onChange(section.key, e.target.value)} placeholder="Add notes or observations..." />
-          </FormField>
+          <FormField label="Inspection notes"><TextInput value={data.interior[section.key]} onChange={(e) => onChange(section.key, e.target.value)} placeholder="Add notes or observations..." /></FormField>
         </div>
       ))}
     </div>
@@ -514,17 +520,7 @@ const StepTyres = () => (
   </div>
 );
 
-const StepSignature = ({
-  data,
-  onChange,
-  signed,
-  onToggleSigned,
-}: {
-  data: ChecklistData;
-  onChange: <K extends keyof ChecklistData>(field: K, value: ChecklistData[K]) => void;
-  signed: boolean;
-  onToggleSigned: React.Dispatch<React.SetStateAction<boolean>>;
-}) => (
+const StepSignature = ({ data, onChange, signed, onToggleSigned }: { data: ChecklistData; onChange: <K extends keyof ChecklistData>(field: K, value: ChecklistData[K]) => void; signed: boolean; onToggleSigned: React.Dispatch<React.SetStateAction<boolean>>; }) => (
   <div className="app-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
     <div className="app-grid" style={{ gap: 16 }}>
       <div>
@@ -539,40 +535,25 @@ const StepSignature = ({
       </div>
       <div>
         <div className="app-label" style={{ marginBottom: 10 }}>Inspector Signature</div>
-        <div className="app-signature">
-          <span className="app-script" style={{ fontSize: 28, color: '#52525b' }}>{data.signature.inspectorName}</span>
-        </div>
+        <div className="app-signature"><span className="app-script" style={{ fontSize: 28, color: '#52525b' }}>{data.signature.inspectorName}</span></div>
       </div>
     </div>
     <div className="app-grid" style={{ gap: 16 }}>
-      <FormField label="Customer Full Name">
-        <TextInput
-          value={data.signature.customerName}
-          onChange={(e) => onChange('signature', { ...data.signature, customerName: e.target.value, signed })}
-          placeholder="Customer full name"
-        />
-      </FormField>
-      <FormField label="Customer ID / License">
-        <TextInput placeholder="Enter customer ID or license" />
-      </FormField>
-      <FormField label="Inspector">
-        <TextInput value={`Inspector: ${data.signature.inspectorName}`} readOnly />
-      </FormField>
-      <FormField label="Date">
-        <TextInput value={new Date().toLocaleString()} readOnly />
-      </FormField>
+      <FormField label="Customer Full Name"><TextInput value={data.signature.customerName} onChange={(e) => onChange('signature', { ...data.signature, customerName: e.target.value, signed })} placeholder="Customer full name" /></FormField>
+      <FormField label="Customer ID / License"><TextInput placeholder="Enter customer ID or license" /></FormField>
+      <FormField label="Inspector"><TextInput value={`Inspector: ${data.signature.inspectorName}`} readOnly /></FormField>
+      <FormField label="Date"><TextInput value={new Date().toLocaleString()} readOnly /></FormField>
       <div className="app-surface-muted" style={{ padding: 16, fontSize: 13, lineHeight: 1.6 }}>
         <strong>Terms & Conditions</strong>
-        <p style={{ margin: '8px 0 0' }}>
-          By signing, the customer acknowledges the vehicle condition as inspected above and agrees to return the vehicle in the same condition.
-        </p>
+        <p style={{ margin: '8px 0 0' }}>By signing, the customer acknowledges the vehicle condition as inspected above and agrees to return the vehicle in the same condition.</p>
       </div>
     </div>
   </div>
 );
 
-const StepSummary = ({ data, signed }: { data: ChecklistData; signed: boolean }) => {
+const StepSummary = ({ data, signed, pointMetaById }: { data: ChecklistData; signed: boolean; pointMetaById: Record<number, ExteriorInspectionPointMeta>; }) => {
   const abnormalPoints = data.exteriorPoints.filter((point) => point.status === 'Abnormal').length;
+  const notableIssues = data.exteriorPoints.filter((point) => point.status === 'Abnormal').slice(0, 3);
   return (
     <div className="app-grid" style={{ gap: 24 }}>
       <div className="app-split" style={{ flexWrap: 'wrap' }}>
@@ -600,13 +581,11 @@ const StepSummary = ({ data, signed }: { data: ChecklistData; signed: boolean })
           </div>
         </div>
       </div>
+      {notableIssues.length > 0 ? <div className="app-surface-muted" style={{ padding: 16 }}><h4 style={{ margin: '0 0 12px' }}>Exterior Notes Requiring Review</h4><div className="app-note-list">{notableIssues.map((point) => <div key={point.id} className="app-note-row"><span>{pointMetaById[point.id].name}</span><StatusBadge tone="warning">{point.notes || 'Marked abnormal'}</StatusBadge></div>)}</div></div> : null}
       <div className="app-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
         <div>
           <h4 style={{ margin: '0 0 12px' }}>Signatures</h4>
-          <div className="app-signature" style={{ minHeight: 132, flexDirection: 'column', gap: 8 }}>
-            <span className="app-script" style={{ fontSize: 32 }}>{signed ? 'John Doe' : 'Pending signature'}</span>
-            <span className="app-muted" style={{ fontSize: 12 }}>Customer Signature</span>
-          </div>
+          <div className="app-signature" style={{ minHeight: 132, flexDirection: 'column', gap: 8 }}><span className="app-script" style={{ fontSize: 32 }}>{signed ? 'John Doe' : 'Pending signature'}</span><span className="app-muted" style={{ fontSize: 12 }}>Customer Signature</span></div>
         </div>
         <div>
           <h4 style={{ margin: '0 0 12px' }}>Photos Attached</h4>
