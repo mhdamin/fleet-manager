@@ -1022,3 +1022,42 @@ body ::-webkit-scrollbar-thumb:hover {
   object-fit: contain;
   display: block;
 }
+
+.app-tab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.app-tab {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app-tab--active {
+  background: var(--foreground);
+  color: #fafafa;
+  border-color: var(--foreground);
+}
+
+.app-check-option {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+  color: var(--neutral-text);
+}
+
+.app-check-option input {
+  margin: 0;
+}

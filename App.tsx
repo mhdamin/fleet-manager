@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Bell,
+  CalendarRange,
   Car,
   ChevronDown,
   ClipboardList,
@@ -9,14 +10,20 @@ import {
   LogOut,
   Search,
   Settings,
+  Undo2,
   User,
+  UserRound,
   Users,
 } from 'lucide-react';
 
 import AuditTrail from './components/AuditTrail';
+import Bookings from './components/Bookings';
 import ChecklistManager from './components/Checklist/ChecklistManager';
+import Customers from './components/Customers';
 import Dashboard from './components/Dashboard';
+import Rentals from './components/Rentals';
 import Reports from './components/Reports';
+import Returns from './components/Returns';
 import UserManagement from './components/UserManagement';
 import VehicleManagement from './components/VehicleManagement';
 import { Button, FormField, IconButton, ModalShell, TextInput, cx } from './components/AppUI';
@@ -40,11 +47,15 @@ const navSections: Array<{
   items: Array<{ view: ViewState; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }>;
 }> = [
   {
-    label: 'Main Menu',
+    label: 'Operations',
     items: [
       { view: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { view: 'vehicles', label: 'Vehicle Management', icon: Car },
-      { view: 'checklist', label: 'Checklist Management', icon: ClipboardList },
+      { view: 'bookings', label: 'Bookings', icon: CalendarRange },
+      { view: 'rentals', label: 'Rentals', icon: Car },
+      { view: 'returns', label: 'Returns', icon: Undo2 },
+      { view: 'customers', label: 'Customers', icon: UserRound },
+      { view: 'vehicles', label: 'Vehicles', icon: Car },
+      { view: 'checklist', label: 'Checklist', icon: ClipboardList },
     ],
   },
   {
@@ -59,6 +70,10 @@ const navSections: Array<{
 
 const viewLabels: Record<ViewState, string> = {
   dashboard: 'Dashboard',
+  bookings: 'Bookings',
+  rentals: 'Rentals',
+  returns: 'Returns',
+  customers: 'Customers',
   vehicles: 'Vehicle Management',
   checklist: 'Checklist Management',
   audit: 'Audit Trail',
@@ -135,6 +150,14 @@ const App: React.FC = () => {
     switch (currentView) {
       case 'dashboard':
         return <Dashboard />;
+      case 'bookings':
+        return <Bookings />;
+      case 'rentals':
+        return <Rentals />;
+      case 'returns':
+        return <Returns />;
+      case 'customers':
+        return <Customers />;
       case 'vehicles':
         return <VehicleManagement />;
       case 'checklist':
@@ -292,6 +315,7 @@ const App: React.FC = () => {
             <div className="app-topbar__crumb">
               Rental Fleet Manager / <strong>{viewLabels[currentView]}</strong>
             </div>
+            <div className="app-topbar__brand">FleetGuard</div>
           </div>
 
           <div className="app-topbar__actions">
@@ -306,10 +330,9 @@ const App: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsAccountMenuOpen((open) => !open)}
-                className="app-nav-item"
+                className={cx('app-nav-item', 'app-account-trigger')}
                 aria-expanded={isAccountMenuOpen}
                 aria-controls="account-menu"
-                style={{ width: 'auto', padding: '6px 10px' }}
               >
                 <span style={{ fontSize: 14, fontWeight: 500 }}>{authUser?.username || 'User'}</span>
                 <div className="app-avatar">
@@ -386,5 +409,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
-
