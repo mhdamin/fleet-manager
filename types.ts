@@ -11,6 +11,11 @@ export type ViewState =
   | 'maintenance'
   | 'damage'
   | 'exceptions'
+  | 'branches'
+  | 'transfers'
+  | 'approvals'
+  | 'notifications'
+  | 'portal'
   | 'vehicles'
   | 'checklist'
   | 'audit'
@@ -60,6 +65,9 @@ export type WorkOrderStatus = 'Open' | 'In Progress' | 'Waiting Parts' | 'Comple
 export type DamageCaseStatus = 'Open' | 'Review' | 'Repairing' | 'Resolved';
 export type ExceptionStatus = 'Open' | 'Assigned' | 'Resolved';
 export type ExceptionType = 'Maintenance' | 'Damage' | 'Settlement';
+export type ApprovalStatus = 'Pending' | 'Approved' | 'Rejected';
+export type TransferStatus = 'Requested' | 'In Transit' | 'Completed';
+export type NotificationStatus = 'Unread' | 'Read';
 
 export interface PricingBreakdown {
   ratePlanId?: string;
@@ -274,6 +282,48 @@ export interface OperationalException {
   summary: string;
   owner: string;
   status: ExceptionStatus;
+  createdAt: string;
+}
+
+export interface Branch {
+  id: string;
+  code: string;
+  name: string;
+  city: string;
+  manager: string;
+  vehicleCount: number;
+  active: boolean;
+}
+
+export interface TransferRequest {
+  id: string;
+  requestNumber: string;
+  vehiclePlate: string;
+  fromBranch: string;
+  toBranch: string;
+  requestedBy: string;
+  status: TransferStatus;
+  eta: string;
+  createdAt: string;
+}
+
+export interface ApprovalRequest {
+  id: string;
+  approvalNumber: string;
+  category: 'Refund' | 'Transfer' | 'Override';
+  requester: string;
+  summary: string;
+  approver: string;
+  status: ApprovalStatus;
+  createdAt: string;
+}
+
+export interface NotificationEvent {
+  id: string;
+  title: string;
+  body: string;
+  channel: 'Operations' | 'Finance' | 'Customer';
+  status: NotificationStatus;
   createdAt: string;
 }
 
