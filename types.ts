@@ -4,6 +4,10 @@ export type ViewState =
   | 'rentals'
   | 'returns'
   | 'customers'
+  | 'pricing'
+  | 'invoices'
+  | 'payments'
+  | 'settlements'
   | 'vehicles'
   | 'checklist'
   | 'audit'
@@ -49,6 +53,24 @@ export type ReturnOutcome = 'Clean Close' | 'Charges Applied' | 'Damage Review R
 
 export type VehicleOperationalStatus = 'available' | 'reserved' | 'rented' | 'maintenance' | 'inspection_hold';
 
+export type DepositStatus = 'Held' | 'Applied' | 'Partially Refunded' | 'Refunded';
+
+export type InvoiceStatus = 'Draft' | 'Issued' | 'Paid' | 'Partially Paid' | 'Refunded';
+
+export type PaymentStatus = 'Pending' | 'Captured' | 'Failed' | 'Refunded';
+
+export type PaymentMethod = 'Card' | 'Bank Transfer' | 'Cash' | 'Corporate Credit';
+
+export interface PricingBreakdown {
+  ratePlanId?: string;
+  baseRate: number;
+  rentalDays: number;
+  addOnTotal: number;
+  discountTotal: number;
+  taxTotal: number;
+  estimatedTotal: number;
+}
+
 export interface Customer {
   id: string;
   customerNumber: string;
@@ -77,6 +99,8 @@ export interface Booking {
   assignedVehiclePlate?: string;
   estimatedTotal: number;
   depositAmount: number;
+  pricingBreakdown: PricingBreakdown;
+  depositStatus: DepositStatus;
   status: BookingStatus;
   createdAt: string;
   notes?: string;
@@ -100,6 +124,8 @@ export interface RentalContract {
   fuelOut: string;
   fuelIn?: string;
   depositAmount: number;
+  depositStatus: DepositStatus;
+  pricingBreakdown: PricingBreakdown;
   addOns: string[];
   status: RentalStatus;
   createdAt: string;
@@ -123,9 +149,89 @@ export interface ReturnAssessment {
   baseCharges: number;
   extraCharges: number;
   totalCharges: number;
+  settlementId?: string;
   outcome: ReturnOutcome;
   submittedAt: string;
   notes?: string;
+}
+
+export interface RatePlan {
+  id: string;
+  name: string;
+  vehicleClass: string;
+  dailyRate: number;
+  includedMileagePerDay: number;
+  depositAmount: number;
+  taxRate: number;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface InvoiceLineItem {
+  id: string;
+  label: string;
+  amount: number;
+  category: 'Rental' | 'Deposit' | 'Add-on' | 'Tax' | 'Penalty' | 'Refund';
+}
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  bookingId?: string;
+  rentalId?: string;
+  settlementId?: string;
+  customerName: string;
+  status: InvoiceStatus;
+  lineItems: InvoiceLineItem[];
+  subtotal: number;
+  taxTotal: number;
+  total: number;
+  amountPaid: number;
+  balanceDue: number;
+  issuedAt: string;
+}
+
+export interface Payment {
+  id: string;
+  paymentNumber: string;
+  invoiceId: string;
+  customerName: string;
+  amount: number;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  paymentType: 'Deposit' | 'Invoice' | 'Settlement';
+  createdAt: string;
+}
+
+export interface Refund {
+  id: string;
+  refundNumber: string;
+  invoiceId?: string;
+  settlementId?: string;
+  customerName: string;
+  amount: number;
+  reason: string;
+  status: 'Pending' | 'Processed';
+  createdAt: string;
+}
+
+export interface SettlementSummary {
+  id: string;
+  settlementNumber: string;
+  rentalId: string;
+  returnId: string;
+  customerName: string;
+  vehiclePlate: string;
+  depositHeld: number;
+  depositApplied: number;
+  depositRefunded: number;
+  returnCharges: number;
+  invoiceId: string;
+  refundId?: string;
+  amountDue: number;
+  amountRefundable: number;
+  status: 'Open' | 'Settled' | 'Refunded';
+  createdAt: string;
 }
 
 // Checklist Data Structure
