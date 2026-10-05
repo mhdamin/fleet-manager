@@ -1,98 +1,23 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { CalendarRange, CreditCard, Search, ShieldCheck } from 'lucide-react';
-import { getBookings, getCustomers, getInvoices, getRatePlans, getRentals } from '../services/api';
-import { Booking, Customer, Invoice, RatePlan, RentalContract } from '../types';
-
-const CustomerPortal: React.FC = () => {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [selectedCustomerId, setSelectedCustomerId] = useState('');
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [rentals, setRentals] = useState<RentalContract[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [ratePlans, setRatePlans] = useState<RatePlan[]>([]);
-  const [warning, setWarning] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [customerData, bookingData, rentalData, invoiceData, ratePlanData] = await Promise.all([getCustomers(), getBookings(), getRentals(), getInvoices(), getRatePlans()]);
-        setCustomers(customerData);
-        setSelectedCustomerId(customerData[0]?.id || '');
-        setBookings(bookingData);
-        setRentals(rentalData);
-        setInvoices(invoiceData);
-        setRatePlans(ratePlanData.filter((plan) => plan.active));
-        setWarning(null);
-      } catch {
-        setWarning('Unable to load customer portal data.');
-      }
-    };
-    load();
-  }, []);
-
-  const selectedCustomer = customers.find((customer) => customer.id === selectedCustomerId) || null;
-  const myBookings = useMemo(() => bookings.filter((booking) => booking.customerId === selectedCustomerId), [bookings, selectedCustomerId]);
-  const myRentals = useMemo(() => rentals.filter((rental) => rental.customerId === selectedCustomerId), [rentals, selectedCustomerId]);
-  const myInvoices = useMemo(() => invoices.filter((invoice) => invoice.customerName === selectedCustomer?.fullName), [invoices, selectedCustomer]);
-  const filteredRates = useMemo(() => ratePlans.filter((plan) => !search || `${plan.name} ${plan.vehicleClass}`.toLowerCase().includes(search.toLowerCase())), [ratePlans, search]);
-
-  return (
-    <div className="consumer-portal">
-      <div className="consumer-hero">
-        <div>
-          <div className="consumer-kicker">Customer Self-Service Portal</div>
-          <h1 style={{ margin: '10px 0 8px', fontSize: 36 }}>Search, book, review invoices, and manage upcoming trips.</h1>
-          <p className="consumer-subtitle">This Phase 5 portal sits on the same data model as the operations console, so customers and staff see the same booking and billing records.</p>
-        </div>
-        <div className="consumer-panel">
-          <label className="app-field">
-            <span className="app-label">Preview as customer</span>
-            <select className="app-input app-select" value={selectedCustomerId} onChange={(event) => setSelectedCustomerId(event.target.value)}>
-              {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.fullName}</option>)}
-            </select>
-          </label>
-          {selectedCustomer ? <div className="consumer-chip"><ShieldCheck size={16} /> {selectedCustomer.identityStatus} identity � {selectedCustomer.status} account</div> : null}
-        </div>
-      </div>
-
-      {warning ? <p className="app-warning-text">{warning}</p> : null}
-
-      <div className="consumer-grid">
-        <section className="consumer-card">
-          <div className="consumer-card__header"><span>Find A Vehicle</span><Search size={16} /></div>
-          <div className="app-search" style={{ marginBottom: 16 }}>
-            <Search size={16} />
-            <input className="app-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by vehicle class or rate plan" />
-          </div>
-          <div className="consumer-rate-list">
-            {filteredRates.map((plan) => <div key={plan.id} className="consumer-rate-item"><div><div style={{ fontWeight: 700 }}>{plan.name}</div><div className="app-muted" style={{ fontSize: 13 }}>{plan.vehicleClass} � {plan.includedMileagePerDay} km/day included</div></div><div style={{ textAlign: 'right' }}><div style={{ fontWeight: 700 }}>${plan.dailyRate.toFixed(2)}/day</div><div className="app-muted" style={{ fontSize: 13 }}>Deposit ${plan.depositAmount.toFixed(2)}</div></div></div>)}
-          </div>
-        </section>
-
-        <section className="consumer-card">
-          <div className="consumer-card__header"><span>My Trips</span><CalendarRange size={16} /></div>
-          <div className="consumer-stat-row">
-            <div><div className="consumer-stat-label">Bookings</div><div className="consumer-stat-value">{myBookings.length}</div></div>
-            <div><div className="consumer-stat-label">Active Rentals</div><div className="consumer-stat-value">{myRentals.filter((rental) => rental.status === 'Active').length}</div></div>
-            <div><div className="consumer-stat-label">Open Invoices</div><div className="consumer-stat-value">{myInvoices.filter((invoice) => invoice.balanceDue > 0).length}</div></div>
-          </div>
-          <div className="consumer-list">
-            {myBookings.map((booking) => <div key={booking.id} className="consumer-list-item"><div><div style={{ fontWeight: 700 }}>{booking.bookingNumber}</div><div className="app-muted" style={{ fontSize: 13 }}>{booking.pickupLocation} to {booking.dropoffLocation}</div></div><div style={{ textAlign: 'right' }}><div>{new Date(booking.pickupDateTime).toLocaleDateString()}</div><div className="app-muted" style={{ fontSize: 13 }}>{booking.status}</div></div></div>)}
-            {myBookings.length === 0 ? <div className="app-muted">No bookings for this customer yet.</div> : null}
-          </div>
-        </section>
-
-        <section className="consumer-card">
-          <div className="consumer-card__header"><span>Billing</span><CreditCard size={16} /></div>
-          <div className="consumer-list">
-            {myInvoices.map((invoice) => <div key={invoice.id} className="consumer-list-item"><div><div style={{ fontWeight: 700 }}>{invoice.invoiceNumber}</div><div className="app-muted" style={{ fontSize: 13 }}>{invoice.status}</div></div><div style={{ textAlign: 'right' }}><div style={{ fontWeight: 700 }}>${invoice.total.toFixed(2)}</div><div className="app-muted" style={{ fontSize: 13 }}>Due ${invoice.balanceDue.toFixed(2)}</div></div></div>)}
-            {myInvoices.length === 0 ? <div className="app-muted">No invoices for this customer yet.</div> : null}
-          </div>
-        </section>
-      </div>
-    </div>
-  );
-};
-
-export default CustomerPortal;
+import React,{useEffect,useState} from 'react';
+import {apiGet,apiPost,type BookingRequest,type ChecklistResponse} from '../services/api';
+import {Booking,Customer,Invoice,RatePlan,RentalContract,PricingBreakdown} from '../types';
+import {Button,Card,FormField,SectionHeader,SelectInput,TextInput} from './AppUI';
+import InspectionRecord from './Checklist/InspectionRecord';
+import {downloadRecord} from './Checklist/evidence';
+interface PortalData{customer:Customer;bookings:Booking[];rentals:RentalContract[];invoices:Invoice[];ratePlans:RatePlan[];}
+interface Quote{pricing:PricingBreakdown;deposit:number;available:number;currency:string;}
+export default function CustomerTrips(){
+ const [data,setData]=useState<PortalData|null>(null),[records,setRecords]=useState<ChecklistResponse[]>([]),[selected,setSelected]=useState<ChecklistResponse|null>(null),[error,setError]=useState<string|null>(null),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[quote,setQuote]=useState<Quote|null>(null);
+ const [form,setForm]=useState<BookingRequest>({customerId:'self',pickupLocation:'HQ',dropoffLocation:'HQ',pickupDateTime:'',dropoffDateTime:'',vehicleClass:'Sedan',estimatedTotal:0,depositAmount:0,notes:''});
+ const [currentPassword,setCurrentPassword]=useState(''),[newPassword,setNewPassword]=useState('');
+ const load=async()=>{const [d,r]=await Promise.all([apiGet<PortalData>('/api/portal/me'),apiGet<ChecklistResponse[]>('/api/portal/inspections')]);setData(d);setRecords(r);};
+ useEffect(()=>{load().catch(e=>setError(e.message));},[]);
+ const change=(next:Partial<BookingRequest>)=>{setForm({...form,...next});setQuote(null);};
+ if(!data)return <p role="status">{error||'Loading your trips…'}</p>;
+ return <div className="app-grid" style={{gap:20}}><SectionHeader title={'Welcome, '+data.customer.fullName} description="Book a vehicle, review your trips and keep a copy of your documents." warning={error}/>{message&&<p role="status">{message}</p>}
+ <Card className="workflow-card"><h2>Plan your trip</h2><form className="workflow-grid" onSubmit={async e=>{e.preventDefault();setBusy(true);setError(null);try{if(!quote){setQuote(await apiPost<Quote>('/api/portal/quote',form));}else{await apiPost('/api/portal/bookings',{...form,estimatedTotal:quote.pricing.estimatedTotal,depositAmount:quote.deposit});setMessage('Your booking is confirmed and a vehicle is reserved. Bring your driving licence and identity document to pickup. The refundable deposit is collected by staff.');setQuote(null);await load();}}catch(e){setQuote(null);setError(e instanceof Error?e.message:'Booking failed');}finally{setBusy(false);}}}>
+ <FormField label="Pickup"><TextInput required type="datetime-local" value={form.pickupDateTime} onChange={e=>change({pickupDateTime:e.target.value})}/></FormField><FormField label="Return"><TextInput required type="datetime-local" value={form.dropoffDateTime} onChange={e=>change({dropoffDateTime:e.target.value})}/></FormField><FormField label="Vehicle class"><SelectInput value={form.vehicleClass} onChange={e=>change({vehicleClass:e.target.value})}>{Array.from(new Set(data.ratePlans.map(p=>p.vehicleClass))).map(c=><option key={c}>{c}</option>)}</SelectInput></FormField><FormField label="Pickup location"><TextInput required value={form.pickupLocation} onChange={e=>change({pickupLocation:e.target.value})}/></FormField><FormField label="Return location"><TextInput required value={form.dropoffLocation} onChange={e=>change({dropoffLocation:e.target.value})}/></FormField><Button disabled={busy||!!quote&&!quote.available}>{busy?'Please wait…':quote?'Confirm booking':'Check availability and price'}</Button></form>{quote&&<div><h3>{quote.available} vehicles available</h3><p>{quote.pricing.rentalDays} days × {quote.currency} {quote.pricing.baseRate.toFixed(2)} · Tax {quote.pricing.taxTotal.toFixed(2)}</p><p><strong>Rental total: {quote.currency} {quote.pricing.estimatedTotal.toFixed(2)}</strong></p><p>Refundable deposit: {quote.currency} {quote.deposit.toFixed(2)} (separate from the rental price).</p></div>}</Card>
+ <Card className="workflow-card"><h2>Your bookings</h2>{data.bookings.length===0?<p>Your upcoming trips will appear here after booking.</p>:data.bookings.map(b=><div key={b.id} className="app-note-row"><div><strong>{b.vehicleClass}</strong><p>{new Date(b.pickupDateTime).toLocaleString()} → {new Date(b.dropoffDateTime).toLocaleString()}</p><p>{b.pickupLocation} → {b.dropoffLocation} · {b.status}</p></div>{['Draft','Confirmed','Assigned'].includes(b.status)&&!data.rentals.some(r=>r.bookingId===b.id)&&<Button variant="secondary" disabled={busy} onClick={async()=>{if(!window.confirm('Cancel this booking?'))return;setBusy(true);try{await apiPost('/api/portal/bookings/'+b.id+'/cancel');await load();setMessage('Booking cancelled.');}catch(e){setError(e instanceof Error?e.message:'Unable to cancel');}finally{setBusy(false);}}}>Cancel booking</Button>}</div>)}</Card>
+ <Card className="workflow-card"><h2>Invoices and inspection records</h2>{data.invoices.map(i=><div key={i.id} className="app-note-row"><div>{i.invoiceNumber} · {i.status}<ul>{i.lineItems.map(l=><li key={l.id}>{l.label}: ${l.amount.toFixed(2)}</li>)}</ul><p>Total ${i.total.toFixed(2)} · Outstanding ${i.balanceDue.toFixed(2)}</p></div><Button variant="secondary" onClick={()=>downloadRecord(i,i.invoiceNumber)}>Download invoice</Button></div>)}{records.map(r=><div key={r.id} className="app-note-row"><span>{r.vehicle?.plateNumber} · {r.rentalType}</span><Button variant="secondary" onClick={()=>setSelected(r)}>View inspection</Button></div>)}{!data.invoices.length&&!records.length&&<p>Your documents will appear after the rental is prepared.</p>}</Card>{selected&&<InspectionRecord record={selected}/>}
+ <Card className="workflow-card"><h2>Change password</h2><form className="workflow-grid" onSubmit={async e=>{e.preventDefault();setBusy(true);try{await apiPost('/api/users/change-password',{currentPassword,newPassword,confirmPassword:newPassword});setCurrentPassword('');setNewPassword('');setMessage('Password changed.');}catch(e){setError(e instanceof Error?e.message:'Unable to change password');}finally{setBusy(false);}}}><FormField label="Current password"><TextInput required type="password" autoComplete="current-password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)}/></FormField><FormField label="New password"><TextInput required type="password" minLength={10} maxLength={40} autoComplete="new-password" value={newPassword} onChange={e=>setNewPassword(e.target.value)}/></FormField><Button disabled={busy}>Update password</Button></form></Card></div>;
+}

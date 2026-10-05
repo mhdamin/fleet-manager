@@ -124,8 +124,8 @@ const VehicleManagement: React.FC = () => {
       setIsCreateModalOpen(false);
       setForm(DEFAULT_VEHICLE_FORM);
       await loadData();
-    } catch {
-      setWarning('Failed to create vehicle. Ensure you have admin access and valid values.');
+    } catch (error) {
+      setWarning(error instanceof Error ? error.message : 'Unable to create vehicle.');
     } finally {
       setSubmitting(false);
     }
@@ -250,7 +250,7 @@ const VehicleManagement: React.FC = () => {
             </>
           }
         >
-          <form id="create-vehicle-form" onSubmit={handleCreateVehicle} className="app-grid">
+          {warning&&<p role="alert" className="app-warning-text">{warning}</p>}<form id="create-vehicle-form" onSubmit={handleCreateVehicle} className="app-grid">
             <FormField label="Plate Number">
               <TextInput value={form.plateNumber} onChange={(e) => setForm((p) => ({ ...p, plateNumber: e.target.value }))} />
             </FormField>

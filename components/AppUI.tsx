@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 
 type ClassValue = string | false | null | undefined;
 
@@ -132,30 +132,30 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttribu
 
 TextArea.displayName = 'TextArea';
 
-const ModalShell = ({
-  title,
-  onClose,
-  children,
-  footer,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
-}) => (
-  <div className="app-modal-backdrop">
-    <div className="app-modal">
-      <div className="app-modal__header">
-        <h3>{title}</h3>
-        <IconButton aria-label="Close modal" onClick={onClose} type="button">
-          <span aria-hidden="true">×</span>
-        </IconButton>
-      </div>
-      <div className="app-modal__body">{children}</div>
-      {footer ? <div className="app-modal__footer">{footer}</div> : null}
-    </div>
-  </div>
-);
+const ModalShell = ({ title, onClose, children, footer }: { title: string; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode; }) => {
+  const dialog = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose); closeRef.current = onClose;
+  const titleId = useId();
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow; document.body.style.overflow = 'hidden';
+    const controls = (): HTMLElement[] => (Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]') || []) as HTMLElement[]).filter(el => el.getClientRects().length > 0);
+    (controls()[0] || dialog.current)?.focus();
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.stopPropagation(); closeRef.current(); }
+      if (event.key === 'Tab') {
+        const items = controls(); const first = items[0]; const last = items[items.length - 1];
+        if (!first) { event.preventDefault(); dialog.current?.focus(); }
+        else if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    };
+    const focus = (event: FocusEvent) => { if (!dialog.current?.contains(event.target as Node)) (controls()[0] || dialog.current)?.focus(); };
+    document.addEventListener('keydown', keydown); document.addEventListener('focusin', focus);
+    return () => { document.removeEventListener('keydown', keydown); document.removeEventListener('focusin', focus); document.body.style.overflow = overflow; previous?.focus(); };
+  }, []);
+  return <div className="app-modal-backdrop"><div className="app-modal" role="dialog" aria-modal="true" aria-labelledby={titleId} ref={dialog} tabIndex={-1}><div className="app-modal__header"><h3 id={titleId}>{title}</h3><IconButton aria-label="Close modal" onClick={onClose} type="button">Ã—</IconButton></div><div className="app-modal__body">{children}</div>{footer && <div className="app-modal__footer">{footer}</div>}</div></div>;
+};
 
 const TableCard = ({
   children,
@@ -180,4 +180,3 @@ export {
   TextInput,
   cx,
 };
-

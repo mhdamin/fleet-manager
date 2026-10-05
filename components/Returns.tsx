@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Calculator, CheckCircle2, ClipboardCheck, Plus } from 'lucide-react';
 import { Button, FormField, ModalShell, SectionHeader, SelectInput, StatCard, StatusBadge, TableCard, TextArea, TextInput } from './AppUI';
-import { finalizeReturn, getReturns, getRentals, quoteReturnCharges, submitReturn, type ReturnSubmitRequest } from '../services/api';
+import { getChecklists, type ChecklistResponse, getReturns, getRentals, quoteReturnCharges, submitReturn, type ReturnSubmitRequest } from '../services/api';
 import { RentalContract, ReturnAssessment } from '../types';
 
 const emptyForm = (rentals: RentalContract[]): ReturnSubmitRequest => ({
-  rentalId: rentals[0]?.id || '',
+  rentalId: new URLSearchParams(window.location.hash.split('?')[1]).get('rental') || rentals[0]?.id || '',
   odometerIn: 0,
   fuelIn: 'Full',
   damageFlag: false,
@@ -20,21 +20,22 @@ const Returns: React.FC = () => {
   const [returns, setReturns] = useState<ReturnAssessment[]>([]);
   const [rentals, setRentals] = useState<RentalContract[]>([]);
   const [warning, setWarning] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(Boolean(new URLSearchParams(window.location.hash.split('?')[1]).get('rental')));
+  const [inspections,setInspections]=useState<ChecklistResponse[]>([]);
   const [form, setForm] = useState<ReturnSubmitRequest>(emptyForm([]));
   const [quote, setQuote] = useState<{ baseCharges: number; totalCharges: number; outcome: ReturnAssessment['outcome'] } | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const loadData = async () => {
     try {
-      const [returnData, rentalData] = await Promise.all([getReturns(), getRentals()]);
+      const [returnData, rentalData,checklistData] = await Promise.all([getReturns(), getRentals(),getChecklists()]);
+      setInspections(checklistData.filter(c=>c.completed&&c.rentalType==='RETURN'));
       setReturns(returnData);
-      const openRentals = rentalData.filter((rental) => rental.status === 'Active' || rental.status === 'Reserved' || rental.status === 'Overdue');
+      const openRentals = rentalData.filter((rental) => rental.status === 'Active' || rental.status === 'Overdue');
       setRentals(openRentals);
       setForm((current) => (current.rentalId ? current : emptyForm(openRentals)));
       setWarning(null);
-    } catch {
-      setWarning('Unable to load returns.');
+    } catch (error) { setWarning(error instanceof Error ? error.message : 'Unable to load returns.');
     }
   };
 
@@ -75,6 +76,7 @@ const Returns: React.FC = () => {
     };
   }, [form.rentalId, form.fuelIn, form.damageFlag, form.maintenanceFlag, form.lateHours, form.extraCharges]);
 
+  useEffect(()=>{const c=inspections.filter(c=>c.rentalId===form.rentalId).at(-1);if(c?.evidence)setForm(f=>({...f,checklistId:c.id,odometerIn:c.evidence!.odometer,fuelIn:c.evidence!.fuelLevel}));},[form.rentalId,inspections]);
   const metrics = useMemo(() => ({
     total: returns.length,
     cleanClose: returns.filter((item) => item.outcome === 'Clean Close').length,
@@ -95,21 +97,12 @@ const Returns: React.FC = () => {
       setIsModalOpen(false);
       setForm(emptyForm(rentals));
       await loadData();
-    } catch {
-      setWarning('Failed to submit return.');
+    } catch (error) { setWarning(error instanceof Error ? error.message : 'Failed to submit return.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleFinalize = async (id: string) => {
-    try {
-      await finalizeReturn(id);
-      await loadData();
-    } catch {
-      setWarning('Failed to finalize return.');
-    }
-  };
 
   return (
     <div className="app-grid" style={{ gap: 24 }}>
@@ -164,7 +157,7 @@ const Returns: React.FC = () => {
                   <td><StatusBadge tone={item.outcome === 'Clean Close' ? 'success' : item.outcome === 'Charges Applied' ? 'warning' : 'danger'}>{item.outcome}</StatusBadge></td>
                   <td>
                     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <Button variant="secondary" size="sm" type="button" onClick={() => handleFinalize(item.id)}>Finalize</Button>
+                      <Button variant="secondary" size="sm" type="button" onClick={() => { window.location.hash = "rentals?id=" + item.rentalId; }}>View rental</Button>
                     </div>
                   </td>
                 </tr>
@@ -181,14 +174,14 @@ const Returns: React.FC = () => {
           footer={
             <>
               <Button variant="secondary" type="button" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button type="submit" form="return-form" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit Return'}</Button>
+              <Button type="submit" form="return-form" disabled={submitting || !form.checklistId || !quote}>{submitting ? 'Submitting...' : 'Submit Return'}</Button>
             </>
           }
         >
-          <form id="return-form" className="app-grid" onSubmit={handleSubmitReturn}>
+          <form id="return-form" className="app-grid" onSubmit={handleSubmitReturn}>{warning && <p role="alert">{warning}</p>}
             <FormField label="Rental">
               <SelectInput value={form.rentalId} onChange={(event) => setForm((current) => ({ ...current, rentalId: event.target.value }))}>
-                {rentals.map((rental) => <option key={rental.id} value={rental.id}>{rental.rentalNumber} · {rental.customerName} · {rental.vehiclePlate}</option>)}
+                {rentals.map((rental) => <option key={rental.id} value={rental.id}>{rental.rentalNumber} ï¿½ {rental.customerName} ï¿½ {rental.vehiclePlate}</option>)}
               </SelectInput>
             </FormField>
             <div className="app-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
@@ -206,7 +199,7 @@ const Returns: React.FC = () => {
             <div className="app-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
               <FormField label="Late Hours"><TextInput type="number" value={form.lateHours} onChange={(event) => setForm((current) => ({ ...current, lateHours: Number(event.target.value) }))} /></FormField>
               <FormField label="Extra Charges"><TextInput type="number" value={form.extraCharges} onChange={(event) => setForm((current) => ({ ...current, extraCharges: Number(event.target.value) }))} /></FormField>
-              <FormField label="Checklist ID"><TextInput value={form.checklistId} onChange={(event) => setForm((current) => ({ ...current, checklistId: event.target.value }))} /></FormField>
+              <FormField label="Completed return inspection"><SelectInput required value={form.checklistId} onChange={e=>{const c=inspections.find(c=>c.id===e.target.value);setForm({...form,checklistId:e.target.value,odometerIn:c?.evidence?.odometer||0,fuelIn:c?.evidence?.fuelLevel||'Full'});}}><option value="">Choose inspection</option>{inspections.filter(c=>c.rentalId===form.rentalId).map(c=><option key={c.id} value={c.id}>{c.vehicle?.plateNumber} Â· {new Date(c.completedAt||'').toLocaleString()}</option>)}</SelectInput><a href={'#checklist?rental='+form.rentalId+'&type=RETURN'}>Complete return inspection</a></FormField>
             </div>
             <div className="app-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
               <label className="app-check-option">

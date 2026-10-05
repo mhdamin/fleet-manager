@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, Car, CheckCircle2, ClipboardList, Eye, Plus, Search, XCircle } from 'lucide-react';
 import { Button, FormField, ModalShell, SectionHeader, SelectInput, StatCard, StatusBadge, TableCard, TextArea, TextInput } from './AppUI';
-import { assignVehicleToBooking, cancelBooking, confirmBooking, createBooking, getBookings, getCustomers, listVehicleOptions, type BookingRequest, type VehicleOption } from '../services/api';
+import { apiPost, assignVehicleToBooking, cancelBooking, confirmBooking, createBooking, getBookings, getCustomers, listVehicleOptions, type BookingRequest, type VehicleOption } from '../services/api';
 import { Booking, BookingStatus, Customer } from '../types';
 
 const bookingStatuses: Array<BookingStatus | 'All'> = ['All', 'Draft', 'Confirmed', 'Assigned', 'Cancelled', 'Checked Out', 'Completed'];
@@ -48,6 +48,8 @@ const Bookings: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [quote,setQuote]=useState<{pricing:{estimatedTotal:number;taxTotal:number;rentalDays:number};deposit:number;available:number;currency:string}|null>(null);
+  useEffect(()=>{let cancelled=false;setQuote(null);if(!isCreateModalOpen||!form.customerId)return;const timer=window.setTimeout(()=>{apiPost<any>('/api/bookings/quote',form).then(q=>{if(!cancelled)setQuote(q);}).catch(e=>{if(!cancelled)setWarning(e.message);});},250);return()=>{cancelled=true;clearTimeout(timer);};},[isCreateModalOpen,form.customerId,form.pickupDateTime,form.dropoffDateTime,form.vehicleClass]);
 
   const loadData = async () => {
     try {
@@ -61,8 +63,7 @@ const Bookings: React.FC = () => {
       setVehicles(vehicleData);
       setForm((current) => (current.customerId ? current : defaultForm(customerData)));
       setWarning(null);
-    } catch {
-      setWarning('Unable to load booking data.');
+    } catch (error) { setWarning(error instanceof Error ? error.message : 'Unable to load booking data.');
     }
   };
 
@@ -85,8 +86,8 @@ const Bookings: React.FC = () => {
   }), [bookings]);
 
   const assignableVehicles = useMemo(
-    () => vehicles.filter((vehicle) => vehicle.operationalStatus === 'available' || vehicle.operationalStatus === 'reserved'),
-    [vehicles]
+    () => vehicles.filter((vehicle) => !['maintenance','inspection_hold'].includes(vehicle.operationalStatus) && (!detailBooking || vehicle.vehicleClass === detailBooking.vehicleClass)),
+    [vehicles, detailBooking]
   );
 
   const handleCreateBooking = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -95,14 +96,13 @@ const Bookings: React.FC = () => {
     try {
       await createBooking({
         ...form,
-        estimatedTotal: Number(form.estimatedTotal),
-        depositAmount: Number(form.depositAmount),
+        estimatedTotal: 0,
+        depositAmount: quote?.deposit || 0,
       });
       setIsCreateModalOpen(false);
       setForm(defaultForm(customers));
       await loadData();
-    } catch {
-      setWarning('Failed to create booking.');
+    } catch (error) { setWarning(error instanceof Error ? error.message : 'Failed to create booking.');
     } finally {
       setSubmitting(false);
     }
@@ -112,8 +112,7 @@ const Bookings: React.FC = () => {
     try {
       await confirmBooking(bookingId);
       await loadData();
-    } catch {
-      setWarning('Failed to confirm booking.');
+    } catch (error) { setWarning(error instanceof Error ? error.message : 'Failed to confirm booking.');
     }
   };
 
@@ -121,8 +120,7 @@ const Bookings: React.FC = () => {
     try {
       await cancelBooking(bookingId);
       await loadData();
-    } catch {
-      setWarning('Failed to cancel booking.');
+    } catch (error) { setWarning(error instanceof Error ? error.message : 'Failed to cancel booking.');
     }
   };
 
@@ -134,11 +132,11 @@ const Bookings: React.FC = () => {
 
     try {
       setAssigningId(bookingId);
-      await assignVehicleToBooking(bookingId, selectedVehicleId);
+      const updated = await assignVehicleToBooking(bookingId, selectedVehicleId);
+      setDetailBooking(updated);
       setSelectedVehicleId('');
       await loadData();
-    } catch {
-      setWarning('Failed to assign vehicle.');
+    } catch (error) { setWarning(error instanceof Error ? error.message : 'Failed to assign vehicle.');
     } finally {
       setAssigningId(null);
     }
@@ -246,24 +244,6 @@ const Bookings: React.FC = () => {
         </div>
       </TableCard>
 
-      <div className="app-card" style={{ padding: 16 }}>
-        <div className="app-grid" style={{ gridTemplateColumns: 'minmax(0, 1fr) 220px auto', alignItems: 'end' }}>
-          <div>
-            <div className="app-kicker">Allocation Desk</div>
-            <div style={{ fontWeight: 600, marginTop: 4 }}>Assign a vehicle to the selected booking from the detail panel.</div>
-          </div>
-          <FormField label="Available Vehicle">
-            <SelectInput value={selectedVehicleId} onChange={(event) => setSelectedVehicleId(event.target.value)}>
-              <option value="">Select vehicle</option>
-              {assignableVehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.label}</option>)}
-            </SelectInput>
-          </FormField>
-          <Button type="button" variant="secondary" disabled={!detailBooking || !selectedVehicleId || Boolean(assigningId)} onClick={() => detailBooking && handleAssignVehicle(detailBooking.id)}>
-            {assigningId ? 'Assigning...' : 'Assign To Open Detail'}
-          </Button>
-        </div>
-      </div>
-
       {isCreateModalOpen ? (
         <ModalShell
           title="Create Booking"
@@ -271,11 +251,11 @@ const Bookings: React.FC = () => {
           footer={
             <>
               <Button variant="secondary" type="button" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
-              <Button type="submit" form="create-booking-form" disabled={submitting}>{submitting ? 'Creating...' : 'Create Booking'}</Button>
+              <Button type="submit" form="create-booking-form" disabled={submitting || !quote}>{submitting ? 'Creating...' : 'Create Booking'}</Button>
             </>
           }
         >
-          <form id="create-booking-form" onSubmit={handleCreateBooking} className="app-grid">
+          <form id="create-booking-form" onSubmit={handleCreateBooking} className="app-grid">{warning && <p role="alert">{warning}</p>}{quote && <p>{quote.available} vehicles available · {quote.pricing.rentalDays} days · Tax {quote.currency} {quote.pricing.taxTotal.toFixed(2)}</p>}
             <FormField label="Customer">
               <SelectInput value={form.customerId} onChange={(event) => setForm((current) => ({ ...current, customerId: event.target.value }))}>
                 {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.fullName}</option>)}
@@ -297,8 +277,8 @@ const Bookings: React.FC = () => {
                   <option value="Van">Van</option>
                 </SelectInput>
               </FormField>
-              <FormField label="Estimated Total"><TextInput type="number" value={form.estimatedTotal} onChange={(event) => setForm((current) => ({ ...current, estimatedTotal: Number(event.target.value) }))} /></FormField>
-              <FormField label="Deposit"><TextInput type="number" value={form.depositAmount} onChange={(event) => setForm((current) => ({ ...current, depositAmount: Number(event.target.value) }))} /></FormField>
+              <FormField label="Rental total"><TextInput readOnly value={quote ? quote.currency + " " + quote.pricing.estimatedTotal.toFixed(2) : "Calculating…"} /></FormField>
+              <FormField label="Refundable deposit"><TextInput readOnly value={quote ? quote.currency + " " + quote.deposit.toFixed(2) : "Calculating…"} /></FormField>
             </div>
             <FormField label="Notes">
               <TextArea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Pickup window, add-ons, special instructions" />
@@ -310,6 +290,8 @@ const Bookings: React.FC = () => {
       {detailBooking ? (
         <ModalShell title={detailBooking.bookingNumber} onClose={() => setDetailBooking(null)} footer={<Button type="button" variant="secondary" onClick={() => setDetailBooking(null)}>Close</Button>}>
           <div className="app-grid">
+            {warning && <p role="alert">{warning}</p>}
+            {['Confirmed','Assigned'].includes(detailBooking.status) && <><FormField label="Vehicle candidates (availability checked on assignment)"><SelectInput value={selectedVehicleId} onChange={e=>setSelectedVehicleId(e.target.value)}><option value="">Choose vehicle</option>{assignableVehicles.map(v=><option key={v.id} value={v.id}>{v.label}</option>)}</SelectInput></FormField><Button disabled={!selectedVehicleId || !!assigningId} onClick={()=>handleAssignVehicle(detailBooking.id)}>Assign vehicle</Button><a href={'#rentals?booking='+detailBooking.id}>Prepare rental</a></>}
             <div className="app-note-row"><span className="app-muted">Customer</span><strong>{detailBooking.customerName}</strong></div>
             <div className="app-note-row"><span className="app-muted">Trip</span><strong>{detailBooking.pickupLocation} to {detailBooking.dropoffLocation}</strong></div>
             <div className="app-note-row"><span className="app-muted">Window</span><strong>{new Date(detailBooking.pickupDateTime).toLocaleString()} to {new Date(detailBooking.dropoffDateTime).toLocaleString()}</strong></div>

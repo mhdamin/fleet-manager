@@ -31,8 +31,7 @@ const Customers: React.FC = () => {
       const customerData = query ? await searchCustomers(query) : await getCustomers();
       setCustomers(customerData);
       setWarning(null);
-    } catch {
-      setWarning('Unable to load customers.');
+    } catch (error) { setWarning(error instanceof Error ? error.message : 'Unable to load customers.');
     }
   };
 
@@ -95,8 +94,7 @@ const Customers: React.FC = () => {
       setIsModalOpen(false);
       setForm(emptyForm);
       await loadCustomers(searchTerm);
-    } catch {
-      setWarning('Failed to save customer.');
+    } catch (error) { setWarning(error instanceof Error ? error.message : 'Failed to save customer.');
     } finally {
       setSubmitting(false);
     }
@@ -181,7 +179,7 @@ const Customers: React.FC = () => {
             </>
           }
         >
-          <form id="customer-form" className="app-grid" onSubmit={handleSubmit}>
+          {warning&&<p role="alert" className="app-warning-text">{warning}</p>}<form id="customer-form" className="app-grid" onSubmit={handleSubmit}>
             <div className="app-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
               <FormField label="Full Name"><TextInput value={form.fullName} onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))} /></FormField>
               <FormField label="Email"><TextInput type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} /></FormField>

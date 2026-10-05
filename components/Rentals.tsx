@@ -5,7 +5,7 @@ import { createRentalFromBooking, extendRental, getBookings, getRentals, listVeh
 import { Booking, RentalContract } from '../types';
 
 const emptyForm = (bookings: Booking[], vehicles: VehicleOption[]): RentalCreateRequest => ({
-  bookingId: bookings[0]?.id || '',
+  bookingId: new URLSearchParams(window.location.hash.split('?')[1]).get('booking') || bookings[0]?.id || '',
   vehicleId: vehicles.find((vehicle) => vehicle.operationalStatus === 'available' || vehicle.operationalStatus === 'reserved')?.id || '',
   odometerOut: 0,
   fuelOut: 'Full',
@@ -20,7 +20,7 @@ const Rentals: React.FC = () => {
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [warning, setWarning] = useState<string | null>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(Boolean(new URLSearchParams(window.location.hash.split('?')[1]).get('booking')));
   const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
   const [selectedRental, setSelectedRental] = useState<RentalContract | null>(null);
   const [form, setForm] = useState<RentalCreateRequest>(emptyForm([], []));
@@ -33,10 +33,13 @@ const Rentals: React.FC = () => {
       setRentals(rentalData);
       setBookings(bookingData.filter((booking) => booking.status === 'Confirmed' || booking.status === 'Assigned'));
       setVehicles(vehicleData);
-      setForm((current) => (current.bookingId ? current : emptyForm(bookingData, vehicleData)));
+      setForm(current => {
+        const options=bookingData.filter(b=>['Confirmed','Assigned'].includes(b.status)&&!rentalData.some(r=>r.bookingId===b.id));
+        const booking=options.find(b=>b.id===current.bookingId)||options[0];
+        return {...current,bookingId:booking?.id||'',vehicleId:booking?.assignedVehicleId||'',depositAmount:booking?.depositAmount||0};
+      });
       setWarning(null);
-    } catch {
-      setWarning('Unable to load rentals.');
+    } catch (error) { setWarning(error instanceof Error ? error.message : 'Unable to load rentals.');
     }
   };
 
@@ -61,24 +64,24 @@ const Rentals: React.FC = () => {
     overdue: rentals.filter((rental) => rental.status === 'Overdue').length,
   }), [rentals]);
 
-  const bookingOptions = useMemo(() => bookings, [bookings]);
+  const bookingOptions = useMemo(() => bookings.filter(b=>!rentals.some(r=>r.bookingId===b.id)), [bookings,rentals]);
   const vehicleOptions = useMemo(() => vehicles.filter((vehicle) => vehicle.operationalStatus !== 'maintenance' && vehicle.operationalStatus !== 'inspection_hold'), [vehicles]);
 
   const handleCreateRental = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
     try {
-      await createRentalFromBooking({
+      const created = await createRentalFromBooking({
         ...form,
         odometerOut: Number(form.odometerOut),
         depositAmount: Number(form.depositAmount),
         addOns: form.addOns,
       });
       setIsCreateModalOpen(false);
+      window.location.hash = "rentals?id=" + created.id;
       setForm(emptyForm(bookings, vehicles));
       await loadData();
-    } catch {
-      setWarning('Failed to create rental.');
+    } catch (error) { setWarning(error instanceof Error ? error.message : 'Failed to create rental.');
     } finally {
       setSubmitting(false);
     }
@@ -88,8 +91,7 @@ const Rentals: React.FC = () => {
     try {
       await startRental(rentalId);
       await loadData();
-    } catch {
-      setWarning('Failed to start rental.');
+    } catch (error) { setWarning(error instanceof Error ? error.message : 'Failed to start rental.');
     }
   };
 
@@ -113,8 +115,7 @@ const Rentals: React.FC = () => {
       await extendRental(selectedRental.id, extendForm);
       setIsExtendModalOpen(false);
       await loadData();
-    } catch {
-      setWarning('Failed to extend rental.');
+    } catch (error) { setWarning(error instanceof Error ? error.message : 'Failed to extend rental.');
     } finally {
       setSubmitting(false);
     }
@@ -163,7 +164,7 @@ const Rentals: React.FC = () => {
               ) : filteredRentals.map((rental) => (
                 <tr key={rental.id}>
                   <td>
-                    <div style={{ fontWeight: 600 }}>{rental.rentalNumber}</div>
+                    <a href={"#rentals?id=" + rental.id} style={{ fontWeight: 600 }}>{rental.rentalNumber}</a>
                     <div className="app-muted" style={{ fontSize: 12 }}>{rental.bookingNumber}</div>
                   </td>
                   <td>{rental.customerName}</td>
@@ -204,10 +205,10 @@ const Rentals: React.FC = () => {
             </>
           }
         >
-          <form id="rental-form" className="app-grid" onSubmit={handleCreateRental}>
+          <form id="rental-form" className="app-grid" onSubmit={handleCreateRental}>{warning && <p role="alert">{warning}</p>}
             <FormField label="Booking">
-              <SelectInput value={form.bookingId} onChange={(event) => setForm((current) => ({ ...current, bookingId: event.target.value }))}>
-                {bookingOptions.map((booking) => <option key={booking.id} value={booking.id}>{booking.bookingNumber} · {booking.customerName}</option>)}
+              <SelectInput value={form.bookingId} onChange={event=>{const b=bookings.find(b=>b.id===event.target.value);setForm({...form,bookingId:event.target.value,vehicleId:b?.assignedVehicleId||'',depositAmount:b?.depositAmount||0});}}>
+                {bookingOptions.map((booking) => <option key={booking.id} value={booking.id}>{booking.bookingNumber} ï¿½ {booking.customerName}</option>)}
               </SelectInput>
             </FormField>
             <FormField label="Vehicle">
@@ -226,7 +227,7 @@ const Rentals: React.FC = () => {
                   <option value="Empty">Empty</option>
                 </SelectInput>
               </FormField>
-              <FormField label="Deposit"><TextInput type="number" value={form.depositAmount} onChange={(event) => setForm((current) => ({ ...current, depositAmount: Number(event.target.value) }))} /></FormField>
+              <FormField label="Deposit due at pickup"><TextInput readOnly value={form.depositAmount} /></FormField>
             </div>
             <FormField label="Add-ons (comma separated)"><TextInput value={form.addOns.join(', ')} onChange={(event) => setForm((current) => ({ ...current, addOns: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) }))} placeholder="GPS, Child Seat" /></FormField>
             <FormField label="Notes"><TextArea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Delivery notes, driver remarks, approval notes" /></FormField>
@@ -245,7 +246,7 @@ const Rentals: React.FC = () => {
             </>
           }
         >
-          <form id="extend-rental-form" className="app-grid" onSubmit={handleExtendRental}>
+          <form id="extend-rental-form" className="app-grid" onSubmit={handleExtendRental}>{warning && <p role="alert">{warning}</p>}
             <FormField label="Expected Return">
               <TextInput type="datetime-local" value={extendForm.expectedReturnDateTime} onChange={(event) => setExtendForm((current) => ({ ...current, expectedReturnDateTime: event.target.value }))} />
             </FormField>

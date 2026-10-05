@@ -1,3 +1,4 @@
+import type { InspectionEvidence } from '../components/Checklist/evidence';
 import { Booking, BookingStatus, Customer, DepositStatus, Invoice, Payment, PaymentMethod, PricingBreakdown, RatePlan, Refund, RentalContract, ReturnAssessment, ReturnOutcome, SettlementSummary, VehicleOperationalStatus } from '../types';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '');
@@ -16,7 +17,7 @@ interface RegisterRequest { username: string; password: string; roles?: string[]
 interface ActivityResponse { id: string; checklistId?: string; changeType: string; oldVehiclePlate?: string; newVehiclePlate?: string; reason?: string; timestamp: string; staffName?: string; }
 interface InspectionSummaryResponse { totalInspections: number; preRentalInspections: number; postRentalInspections: number; periodicInspections: number; totalDefects: number; unresolvedDefects: number; averageDefectsPerInspection: number; }
 interface InspectionTrendResponse { date: string; inspectionCount: number; defectCount: number; }
-interface ChecklistResponse { id: string; checklistNumber: string; rentalStartDate: string; rentalEndDate?: string; customerName: string; customerPhone: string; staffName: string; rentalType: string; createdAt?: string; vehicle?: { id: string; plateNumber: string; model: string; manufacturer: string; year: number; status: string; }; }
+interface ChecklistResponse { rentalId?: string; completed: boolean; completedAt?: string; evidence?: InspectionEvidence; id: string; checklistNumber: string; rentalStartDate: string; rentalEndDate?: string; customerName: string; customerPhone: string; staffName: string; rentalType: string; createdAt?: string; vehicle?: { id: string; plateNumber: string; model: string; manufacturer: string; year: number; status: string; }; }
 interface BookingRequest { customerId: string; pickupLocation: string; dropoffLocation: string; pickupDateTime: string; dropoffDateTime: string; vehicleClass: string; estimatedTotal: number; depositAmount: number; notes?: string; }
 interface CustomerRequest { fullName: string; email: string; phone: string; licenseNumber: string; licenseExpiry: string; identityStatus: Customer['identityStatus']; status: Customer['status']; notes: string; }
 interface RentalCreateRequest { bookingId: string; vehicleId: string; odometerOut: number; fuelOut: string; depositAmount: number; addOns: string[]; notes?: string; }
@@ -28,18 +29,44 @@ interface VehicleOption { id: string; plateNumber: string; label: string; vehicl
 interface BookingFilter { status?: BookingStatus | 'All'; query?: string; }
 interface CustomerFilter { query?: string; }
 interface RatePlanRequest { name: string; vehicleClass: string; dailyRate: number; includedMileagePerDay: number; depositAmount: number; taxRate: number; active: boolean; }
-interface PaymentCreateRequest { invoiceId: string; customerName: string; amount: number; method: PaymentMethod; paymentType: Payment['paymentType']; }
-interface RefundRequest { invoiceId?: string; settlementId?: string; customerName: string; amount: number; reason: string; }
+interface PaymentCreateRequest { reference: string; requestKey: string; invoiceId: string; customerName: string; amount: number; method: PaymentMethod; paymentType: Payment['paymentType']; }
+interface RefundRequest { reference: string; requestKey: string; invoiceId?: string; settlementId?: string; customerName: string; amount: number; reason: string; }
 
 const buildApiUrl = (path: string): string => /^https?:\/\//i.test(path) ? path : `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 const getAccessToken = (): string => localStorage.getItem(ACCESS_TOKEN_KEY) || '';
 const buildHeaders = (init?: RequestInit): HeadersInit => ({ Accept: 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}), ...(init?.headers || {}) });
+let refreshPromise: Promise<void> | null = null;
+const refreshSession = (): Promise<void> => {
+  if (!refreshPromise) refreshPromise = (async () => {
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    if (!refreshToken) throw new Error('Please sign in again. Your draft is retained on this device.');
+    const result = await fetch(buildApiUrl('/api/auth/refresh'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken }) });
+    if (!result.ok) throw new Error('Please sign in again. Your draft is retained on this device.');
+    const data = await result.json();
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken);
+    if (data.refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+  })().finally(() => { refreshPromise = null; });
+  return refreshPromise;
+};
 const apiRequest = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(buildApiUrl(path), { ...init, headers: buildHeaders(init) });
-  if (response.status === 401) { window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT)); throw new Error('Unauthorized'); }
-  if (!response.ok) throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+  const token = getAccessToken();
+  let response = await fetch(buildApiUrl(path), { ...init, headers: buildHeaders(init) });
+  if (response.status === 401 && !path.startsWith('/api/auth/')) {
+    try { if (token === getAccessToken()) await refreshSession(); }
+    catch (error) { window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT)); throw error; }
+    response = await fetch(buildApiUrl(path), { ...init, headers: buildHeaders(init) });
+    if (response.status === 401) window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
+  }
+  if (!response.ok) {
+    const body = await response.text();
+    let message = response.status === 403 ? 'You do not have permission to perform this action.' : response.status === 401 ? 'Please check your sign-in details.' : 'The request could not be completed. Please try again.';
+    try { const data = JSON.parse(body); if (data.message) message = data.message; } catch { /* Keep the safe fallback for non-JSON errors. */ }
+    throw new Error(message);
+  }
   if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+  const body = await response.text();
+  if (!body) return undefined as T;
+  try { return JSON.parse(body) as T; } catch { return body as T; }
 };
 const apiGet = async <T>(path: string, init?: RequestInit): Promise<T> => apiRequest<T>(path, { ...init, method: 'GET' });
 const apiPost = async <T>(path: string, body?: unknown, init?: RequestInit): Promise<T> => apiRequest<T>(path, { ...init, method: 'POST', headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) }, body: body !== undefined ? JSON.stringify(body) : undefined });

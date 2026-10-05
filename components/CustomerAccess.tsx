@@ -1,0 +1,9 @@
+import React,{useEffect,useState} from 'react';
+import {apiPost,getCustomers} from '../services/api';
+import {Customer} from '../types';
+import {Button,Card,FormField,SelectInput,TextInput} from './AppUI';
+export default function CustomerAccess(){
+ const [customers,setCustomers]=useState<Customer[]>([]),[id,setId]=useState(''),[username,setUsername]=useState(''),[password,setPassword]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
+ useEffect(()=>{getCustomers().then(setCustomers).catch(e=>setMessage(e.message));},[]);
+ return <Card className="workflow-card"><h3>Customer portal access</h3><p>Create an account that can access only this customer's trips and documents. Share the initial password privately.</p><Button variant="secondary" onClick={()=>getCustomers().then(setCustomers).catch(e=>setMessage(e.message))}>Refresh customers</Button><form className="workflow-grid" onSubmit={async e=>{e.preventDefault();setBusy(true);try{await apiPost('/api/customers/'+id+'/portal-account',{username,password});setPassword('');setMessage('Customer access created.');}catch(e){setMessage(e instanceof Error?e.message:'Unable to create access');}finally{setBusy(false);}}}><FormField label="Customer"><SelectInput required value={id} onChange={e=>setId(e.target.value)}><option value="">Choose customer</option>{customers.map(c=><option key={c.id} value={c.id}>{c.fullName} — {c.email}</option>)}</SelectInput></FormField><FormField label="Username"><TextInput required minLength={3} maxLength={20} value={username} onChange={e=>setUsername(e.target.value)}/></FormField><FormField label="Initial password"><TextInput required type="password" minLength={10} maxLength={40} autoComplete="new-password" value={password} onChange={e=>setPassword(e.target.value)}/></FormField><Button disabled={busy}>Create portal access</Button></form><p role="status">{message}</p></Card>;
+}

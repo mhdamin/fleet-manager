@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Bell, Building2, CalendarRange, Car, ChevronDown, ClipboardList, Coins, FileText, LayoutDashboard, LogOut, Receipt, Search, Settings, ShieldAlert, ShieldCheck, Undo2, User, UserRound, Users, Wallet, Wrench, ArrowRightLeft } from 'lucide-react';
 
+import RentalDetail from './components/RentalDetail';
+import CustomerAccess from './components/CustomerAccess';
 import Approvals from './components/Approvals';
 import AuditTrail from './components/AuditTrail';
 import Bookings from './components/Bookings';
@@ -73,7 +75,11 @@ const viewLabels: Record<ViewState, string> = {
 const getInitials = (name: string): string => name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'FG';
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<ViewState>('dashboard');
+  const [route, setRoute] = useState(window.location.hash.slice(1) || 'dashboard');
+  const currentView = (route.split('?')[0] in viewLabels ? route.split('?')[0] : 'dashboard') as ViewState;
+  const setCurrentView = (view: ViewState) => { window.location.hash = view; };
+  const [mobileMenu, setMobileMenu] = useState(false);
+  useEffect(() => { const changed = () => { setRoute(window.location.hash.slice(1) || 'dashboard'); setMobileMenu(false); }; window.addEventListener('hashchange', changed); return () => window.removeEventListener('hashchange', changed); }, []);
   const [authUser, setAuthUser] = useState<AuthUser | null>(isAuthenticated() ? getStoredAuthUser() : null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -88,7 +94,6 @@ const App: React.FC = () => {
     const onUnauthorized = () => {
       clearAuthSession();
       setAuthUser(null);
-      setCurrentView('dashboard');
       setLoginError('Your session has expired. Please log in again.');
     };
     window.addEventListener(AUTH_UNAUTHORIZED_EVENT, onUnauthorized);
@@ -103,13 +108,19 @@ const App: React.FC = () => {
     return () => { document.removeEventListener('mousedown', onDocumentMouseDown); document.removeEventListener('keydown', onDocumentKeyDown); };
   }, [isAccountMenuOpen, isAccountModalOpen]);
 
+  const customerOnly = Boolean(authUser?.roles?.includes('ROLE_CUSTOMER'));
+  const admin = Boolean(authUser?.roles?.some(r => ['ROLE_ADMIN', 'ROLE_SUPERADMIN'].includes(r)));
+  const finance = admin || Boolean(authUser?.roles?.includes('ROLE_MANAGER'));
+  const allowed = (view: ViewState) => customerOnly ? view === 'portal' : view === 'portal' ? false : view === 'users' ? admin : ['pricing', 'payments', 'approvals'].includes(view) ? finance : true;
   const renderContent = () => {
+    if (customerOnly) return <CustomerPortal />;
+    if (!allowed(currentView)) return <p>You do not have access to this page.</p>;
     switch (currentView) {
       case 'dashboard': return <Dashboard />;
       case 'bookings': return <Bookings />;
-      case 'rentals': return <Rentals />;
+      case 'rentals': return new URLSearchParams(route.split('?')[1]).get('id') ? <RentalDetail /> : <Rentals />;
       case 'returns': return <Returns />;
-      case 'customers': return <Customers />;
+      case 'customers': return <><Customers />{admin && <CustomerAccess />}</>;
       case 'pricing': return <Pricing />;
       case 'invoices': return <Invoices />;
       case 'payments': return <Payments />;
@@ -141,11 +152,11 @@ const App: React.FC = () => {
       saveAuthSession(auth);
       setAuthUser({ username: auth.username, roles: auth.roles || [] });
       setPassword('');
-      setCurrentView('dashboard');
-    } catch {
+      if (auth.roles?.includes('ROLE_CUSTOMER')) setCurrentView('portal');
+    } catch (error) {
       clearAuthSession();
       setAuthUser(null);
-      setLoginError('Invalid username or password.');
+      setLoginError(error instanceof Error ? error.message : 'Unable to sign in. Please try again.');
     } finally {
       setIsLoggingIn(false);
     }
@@ -168,7 +179,7 @@ const App: React.FC = () => {
 
   const rolesLabel = authUser?.roles?.join(', ') || 'No Roles';
 
-  return <div className="app-shell"><aside className="app-sidebar"><div className="app-sidebar__brand"><div className="app-user-chip"><Car size={22} /><div><div className="app-topbar__brand">FleetGuard</div><div className="app-kicker">Manager Console</div></div></div></div><nav className="app-sidebar__nav">{navSections.map((section) => <div key={section.label} className="app-sidebar__group"><p className="app-sidebar__label">{section.label}</p><div className="app-grid" style={{ gap: 4 }}>{section.items.map((item) => { const Icon = item.icon; return <button key={item.view} type="button" onClick={() => setCurrentView(item.view)} className={cx('app-nav-item', currentView === item.view && 'app-nav-item--active')}><Icon size={16} /><span>{item.label}</span></button>; })}</div></div>)}</nav><div className="app-sidebar__footer"><div className="app-split"><div className="app-user-chip" style={{ minWidth: 0 }}><div className="app-avatar">{getInitials(authUser?.username || 'Fleet Guard')}</div><div style={{ minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{authUser?.username}</div><div className="app-kicker" style={{ textTransform: 'none' }}>{authUser?.roles?.[0] || 'User'}</div></div></div><IconButton type="button" onClick={handleLogout} aria-label="Logout" title="Logout"><LogOut size={16} /></IconButton></div></div></aside><main className="app-main"><header className="app-topbar"><div className="app-user-chip"><div className="app-avatar"><Car size={16} /></div><div className="app-topbar__crumb">Rental Fleet Manager / <strong>{viewLabels[currentView]}</strong></div><div className="app-topbar__brand">FleetGuard</div></div><div className="app-topbar__actions"><div className="app-search app-topbar__search"><Search size={16} /><TextInput placeholder="Search..." style={{ width: 240 }} /></div><IconButton type="button" aria-label="Notifications"><Bell size={18} /></IconButton><div className="relative" ref={accountMenuRef}><button type="button" onClick={() => setIsAccountMenuOpen((open) => !open)} className={cx('app-nav-item', 'app-account-trigger')} aria-expanded={isAccountMenuOpen} aria-controls="account-menu"><span style={{ fontSize: 14, fontWeight: 500 }}>{authUser?.username || 'User'}</span><div className="app-avatar"><User size={16} /></div><ChevronDown size={14} style={{ transform: isAccountMenuOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s ease' }} /></button>{isAccountMenuOpen ? <div id="account-menu" className="app-card" style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 240, padding: 8, zIndex: 20 }}><div style={{ padding: 10, borderBottom: '1px solid var(--border)' }}><div style={{ fontSize: 14, fontWeight: 600 }}>{authUser?.username || 'User'}</div><div className="app-muted" style={{ fontSize: 12, marginTop: 4 }}>{rolesLabel}</div></div><div className="app-grid" style={{ gap: 4, paddingTop: 8 }}><button type="button" className="app-nav-item" onClick={() => { setIsAccountMenuOpen(false); setIsAccountModalOpen(true); }}>My Account</button><button type="button" className="app-nav-item" onClick={handleLogout}><LogOut size={14} />Logout</button></div></div> : null}</div></div></header><div className="app-page"><div className="app-page-inner">{renderContent()}</div></div></main>{isAccountModalOpen ? <ModalShell title="My Account" onClose={() => setIsAccountModalOpen(false)} footer={<><Button variant="secondary" type="button" onClick={() => setIsAccountModalOpen(false)}>Close</Button><Button variant="danger" type="button" onClick={handleLogout}>Logout</Button></>}><div className="app-grid" style={{ gap: 16 }}><div><div className="app-kicker">Username</div><div style={{ marginTop: 6, fontWeight: 600 }}>{authUser?.username || 'User'}</div></div><div><div className="app-kicker">Roles</div><div style={{ marginTop: 6, fontWeight: 600 }}>{rolesLabel}</div></div></div></ModalShell> : null}</div>;
+  return <div className="app-shell"><aside className={cx("app-sidebar", mobileMenu && "app-sidebar--open")} id="main-navigation"><div className="app-sidebar__brand"><div className="app-user-chip"><Car size={22} /><div><div className="app-topbar__brand">FleetGuard</div><div className="app-kicker">Manager Console</div></div></div></div><nav className="app-sidebar__nav">{navSections.filter(section => section.items.some(item => allowed(item.view))).map((section) => <div key={section.label} className="app-sidebar__group"><p className="app-sidebar__label">{section.label}</p><div className="app-grid" style={{ gap: 4 }}>{section.items.filter(item => allowed(item.view)).map((item) => { const Icon = item.icon; return <button key={item.view} type="button" onClick={() => setCurrentView(item.view)} className={cx('app-nav-item', currentView === item.view && 'app-nav-item--active')}><Icon size={16} /><span>{item.label}</span></button>; })}</div></div>)}</nav><div className="app-sidebar__footer"><div className="app-split"><div className="app-user-chip" style={{ minWidth: 0 }}><div className="app-avatar">{getInitials(authUser?.username || 'Fleet Guard')}</div><div style={{ minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>{authUser?.username}</div><div className="app-kicker" style={{ textTransform: 'none' }}>{authUser?.roles?.[0] || 'User'}</div></div></div><IconButton type="button" onClick={handleLogout} aria-label="Logout" title="Logout"><LogOut size={16} /></IconButton></div></div></aside><main className="app-main"><header className="app-topbar"><Button className="app-mobile-menu" variant="secondary" aria-controls="main-navigation" aria-expanded={mobileMenu} onClick={() => setMobileMenu(!mobileMenu)}>Menu</Button><div className="app-user-chip"><div className="app-avatar"><Car size={16} /></div><div className="app-topbar__crumb">Rental Fleet Manager / <strong>{viewLabels[currentView]}</strong></div><div className="app-topbar__brand">FleetGuard</div></div><div className="app-topbar__actions"><IconButton type="button" aria-label="Notifications" onClick={() => setCurrentView(customerOnly ? "portal" : "notifications")}><Bell size={18} /></IconButton><div className="relative" ref={accountMenuRef}><button type="button" onClick={() => setIsAccountMenuOpen((open) => !open)} className={cx('app-nav-item', 'app-account-trigger')} aria-expanded={isAccountMenuOpen} aria-controls="account-menu" aria-label="Account menu"><span style={{ fontSize: 14, fontWeight: 500 }}>{authUser?.username || 'User'}</span><div className="app-avatar"><User size={16} /></div><ChevronDown size={14} style={{ transform: isAccountMenuOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s ease' }} /></button>{isAccountMenuOpen ? <div id="account-menu" className="app-card" style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 240, padding: 8, zIndex: 20 }}><div style={{ padding: 10, borderBottom: '1px solid var(--border)' }}><div style={{ fontSize: 14, fontWeight: 600 }}>{authUser?.username || 'User'}</div><div className="app-muted" style={{ fontSize: 12, marginTop: 4 }}>{rolesLabel}</div></div><div className="app-grid" style={{ gap: 4, paddingTop: 8 }}><button type="button" className="app-nav-item" onClick={() => { setIsAccountMenuOpen(false); setIsAccountModalOpen(true); }}>My Account</button><button type="button" className="app-nav-item" onClick={handleLogout}><LogOut size={14} />Logout</button></div></div> : null}</div></div></header><div className="app-page"><div className="app-page-inner" key={route}>{renderContent()}</div></div></main>{isAccountModalOpen ? <ModalShell title="My Account" onClose={() => setIsAccountModalOpen(false)} footer={<><Button variant="secondary" type="button" onClick={() => setIsAccountModalOpen(false)}>Close</Button><Button variant="danger" type="button" onClick={handleLogout}>Logout</Button></>}><div className="app-grid" style={{ gap: 16 }}><div><div className="app-kicker">Username</div><div style={{ marginTop: 6, fontWeight: 600 }}>{authUser?.username || 'User'}</div></div><div><div className="app-kicker">Roles</div><div style={{ marginTop: 6, fontWeight: 600 }}>{rolesLabel}</div></div></div></ModalShell> : null}</div>;
 };
 
 export default App;
